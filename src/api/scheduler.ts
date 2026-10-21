@@ -1,5 +1,5 @@
 import { ApiError } from './errors';
-import type { HttpClient, QueryValue, RateLimitInfo } from './http';
+import type { HttpClient, HttpMethod, QueryValue, RateLimitInfo } from './http';
 
 export type RequestPriority = 'interactive' | 'visible' | 'background';
 
@@ -7,13 +7,18 @@ export interface ScheduledRequestOptions {
   query?: Record<string, QueryValue>;
   priority?: RequestPriority;
   signal?: AbortSignal;
+  body?: unknown;
+  /** Recursos privados podem responder 401 mesmo com uma sessão válida. */
+  invalidateSessionOnUnauthorized?: boolean;
 }
 
 export interface Requester {
   get<T>(path: string, options?: ScheduledRequestOptions): Promise<T>;
+  request?<T>(method: HttpMethod, path: string, options?: ScheduledRequestOptions): Promise<T>;
 }
 
 export interface Scheduler extends Requester {
+  request<T>(method: HttpMethod, path: string, options?: ScheduledRequestOptions): Promise<T>;
   /** Dica dos headers `X-RateLimit-*` da resposta mais recente. */
   noteRateLimit(info: RateLimitInfo): void;
   /** Fim da pausa causada por um 429, ou `null` quando não há pausa. */
@@ -47,6 +52,9 @@ const PRIORITY_RANK: Readonly<Record<RequestPriority, number>> = {
 type JobState = 'queued' | 'running' | 'waiting' | 'settled';
 
 interface Job {
+  method: HttpMethod;
+  body: unknown;
+  invalidateSessionOnUnauthorized: boolean;
   path: string;
   query: Record<string, QueryValue> | undefined;
   priority: RequestPriority;
@@ -168,7 +176,7 @@ export function createScheduler(options: SchedulerOptions): Scheduler {
     if (job.signal?.aborted || !(error instanceof ApiError)) return rejectJob(job, error);
     switch (error.kind) {
       case 'unauthorized':
-        onUnauthorized?.();
+        if (job.invalidateSessionOnUnauthorized) onUnauthorized?.();
         return rejectJob(job, error);
       case 'rate_limited': {
         const pause = clamp(error.retryAfterMs ?? WINDOW_MS, MIN_RATE_LIMIT_PAUSE_MS, WINDOW_MS);
@@ -180,6 +188,7 @@ export function createScheduler(options: SchedulerOptions): Scheduler {
       case 'server':
       case 'network':
       case 'timeout':
+        if (job.method === 'POST' || job.method === 'DELETE') return rejectJob(job, error);
         job.failures += 1;
         if (job.failures >= maxAttempts) return rejectJob(job, error);
         return retryLater(job);
@@ -190,7 +199,11 @@ export function createScheduler(options: SchedulerOptions): Scheduler {
 
   async function run(job: Job) {
     try {
-      const value = await http.get(job.path, { query: job.query, signal: job.signal });
+      const requestOptions = { query: job.query, signal: job.signal, body: job.body };
+      let value: unknown;
+      if (http.request) value = await http.request(job.method, job.path, requestOptions);
+      else if (job.method === 'GET') value = await http.get(job.path, requestOptions);
+      else throw new Error('O transporte não oferece suporte a escritas');
       finish(job);
       job.resolve(value);
     } catch (error) {
@@ -208,30 +221,40 @@ export function createScheduler(options: SchedulerOptions): Scheduler {
     void run(job);
   }
 
+  function request<T>(
+    method: HttpMethod,
+    path: string,
+    requestOptions: ScheduledRequestOptions = {},
+  ): Promise<T> {
+    const { signal } = requestOptions;
+    if (signal?.aborted) return Promise.reject(signal.reason);
+    return new Promise<T>((resolve, reject) => {
+      const job: Job = {
+        method,
+        body: requestOptions.body,
+        invalidateSessionOnUnauthorized: requestOptions.invalidateSessionOnUnauthorized ?? true,
+        path,
+        query: requestOptions.query,
+        priority: requestOptions.priority ?? 'visible',
+        signal,
+        seq: sequence++,
+        state: 'queued',
+        failures: 0,
+        rateLimitRetries: 0,
+        retryTimer: undefined,
+        resolve: resolve as (value: unknown) => void,
+        reject,
+        onAbort: () => cancel(job),
+      };
+      signal?.addEventListener('abort', job.onAbort, { once: true });
+      enqueue(job);
+      drain();
+    });
+  }
+
   return {
-    get<T>(path: string, requestOptions: ScheduledRequestOptions = {}): Promise<T> {
-      const { signal } = requestOptions;
-      if (signal?.aborted) return Promise.reject(signal.reason);
-      return new Promise<T>((resolve, reject) => {
-        const job: Job = {
-          path,
-          query: requestOptions.query,
-          priority: requestOptions.priority ?? 'visible',
-          signal,
-          seq: sequence++,
-          state: 'queued',
-          failures: 0,
-          rateLimitRetries: 0,
-          retryTimer: undefined,
-          resolve: resolve as (value: unknown) => void,
-          reject,
-          onAbort: () => cancel(job),
-        };
-        signal?.addEventListener('abort', job.onAbort, { once: true });
-        enqueue(job);
-        drain();
-      });
-    },
+    get: (path, requestOptions) => request('GET', path, requestOptions),
+    request,
 
     noteRateLimit(info: RateLimitInfo) {
       // Relógio do computador adiantado ou atrasado não pode segurar a fila além da janela.

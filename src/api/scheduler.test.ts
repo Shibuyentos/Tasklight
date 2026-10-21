@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from './errors';
-import type { HttpClient } from './http';
+import { createHttpClient, type HttpClient } from './http';
 import { createScheduler, type SchedulerOptions } from './scheduler';
 
 type Responder = (path: string) => Promise<unknown>;
@@ -299,5 +299,110 @@ describe('createScheduler', () => {
     target.noteRateLimit({ remaining: 95, resetAt: Date.now() + 60_000 });
 
     await expect(visible).resolves.toBeDefined();
+  });
+});
+
+describe('escritas agendadas', () => {
+  it('401 por recurso com invalidateSessionOnUnauthorized false não invalida a sessão', async () => {
+    const onUnauthorized = vi.fn();
+    const request = vi
+      .fn()
+      .mockRejectedValue(new ApiError('unauthorized', 'recurso privado', { status: 401 }));
+    const target = scheduler({ get: vi.fn(), request }, { onUnauthorized });
+    await expect(
+      target.request('POST', '/task/1/comment', {
+        invalidateSessionOnUnauthorized: false,
+      }),
+    ).rejects.toMatchObject({ kind: 'unauthorized', status: 401 });
+    expect(onUnauthorized).not.toHaveBeenCalled();
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['POST', 'DELETE'] as const)(
+    '%s não repete rede, timeout ou 5xx ambíguos',
+    async (method) => {
+      for (const kind of ['network', 'timeout', 'server'] as const) {
+        const request = vi.fn(async () => {
+          throw new ApiError(kind, 'falha');
+        });
+        const target = scheduler({ get: vi.fn(), request });
+        const assertion = expect(
+          target.request(method, '/task/1', { body: { name: 'Tarefa' } }),
+        ).rejects.toMatchObject({ kind });
+        await vi.advanceTimersByTimeAsync(60_000);
+        await assertion;
+        expect(request).toHaveBeenCalledTimes(1);
+      }
+    },
+  );
+
+  it.each(['GET', 'PUT'] as const)('%s mantém retry e preserva método/corpo', async (method) => {
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce(new ApiError('server', 'falha'))
+      .mockResolvedValue({ ok: true });
+    const target = scheduler({ get: vi.fn(), request });
+    const result = target.request(method, '/task/1', { body: { name: 'Tarefa' } });
+    await vi.advanceTimersByTimeAsync(1000);
+    await expect(result).resolves.toEqual({ ok: true });
+    expect(request).toHaveBeenCalledTimes(2);
+    expect(request).toHaveBeenLastCalledWith(method, '/task/1', {
+      body: { name: 'Tarefa' },
+      query: undefined,
+      signal: undefined,
+    });
+  });
+
+  it('429 de POST pausa leituras e permite repetir somente após recusa explícita', async () => {
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new ApiError('rate_limited', 'limite', {
+          status: 429,
+          retryAfterMs: 5000,
+        }),
+      )
+      .mockResolvedValue({ ok: true });
+    const target = scheduler({ get: vi.fn(), request });
+    const write = target.request('POST', '/task/1/comment', { body: { text: 'Mensagem' } });
+    await vi.advanceTimersByTimeAsync(0);
+    const read = target.get('/task/1');
+    await vi.advanceTimersByTimeAsync(4999);
+    expect(request).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    await Promise.all([write, read]);
+    expect(request).toHaveBeenCalledTimes(3);
+  });
+
+  it('POST cancelado na fila nunca chega ao transporte', async () => {
+    const request = vi.fn().mockResolvedValue({});
+    const target = scheduler({ get: vi.fn(), request });
+    await fill(target, 8);
+    const controller = new AbortController();
+    const result = target.request('POST', '/task/1/comment', { signal: controller.signal });
+    controller.abort();
+    await expect(result).rejects.toMatchObject({ name: 'AbortError' });
+    await vi.advanceTimersByTimeAsync(60_001);
+    expect(request.mock.calls.some((call) => call[1] === '/task/1/comment')).toBe(false);
+  });
+
+  it('POST com timeout real do HTTP envia uma única vez', async () => {
+    const fetchMock = vi.fn<typeof fetch>(
+      (_input, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), {
+            once: true,
+          });
+        }),
+    );
+    const target = scheduler(
+      createHttpClient({ getToken: async () => 'synthetic', fetch: fetchMock }),
+    );
+    const assertion = expect(
+      target.request('POST', '/task/1/comment', { body: { text: 'Teste' } }),
+    ).rejects.toMatchObject({ kind: 'timeout' });
+    await vi.advanceTimersByTimeAsync(60_000);
+    await assertion;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

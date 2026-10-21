@@ -1,14 +1,17 @@
 import { ApiError } from './errors';
 
 export type QueryValue = string | number | boolean | Array<string | number>;
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
 export interface RequestOptions {
   query?: Record<string, QueryValue>;
   signal?: AbortSignal;
+  body?: unknown;
 }
 
 export interface HttpClient {
   get<T>(path: string, options?: RequestOptions): Promise<T>;
+  request?<T>(method: HttpMethod, path: string, options?: RequestOptions): Promise<T>;
 }
 
 export interface RateLimitInfo {
@@ -71,7 +74,9 @@ function errorFromResponse(response: Response, now: () => number): ApiError {
   return new ApiError('http', `O ClickUp recusou a requisição (HTTP ${status})`, { status });
 }
 
-export function createHttpClient(options: HttpClientOptions): HttpClient {
+export function createHttpClient(
+  options: HttpClientOptions,
+): HttpClient & Required<Pick<HttpClient, 'request'>> {
   const fetchImpl =
     options.fetch ??
     ((input: RequestInfo | URL, init?: RequestInit) => globalThis.fetch(input, init));
@@ -79,45 +84,60 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const now = options.now ?? Date.now;
 
-  return {
-    async get<T>(path: string, requestOptions: RequestOptions = {}): Promise<T> {
-      const callerSignal = requestOptions.signal;
-      const token = await options.getToken();
-      if (callerSignal?.aborted) throw callerSignal.reason;
-      if (!token) throw new ApiError('unauthorized', 'Nenhum token do ClickUp configurado');
+  async function request<T>(
+    method: HttpMethod,
+    path: string,
+    requestOptions: RequestOptions = {},
+  ): Promise<T> {
+    const callerSignal = requestOptions.signal;
+    const token = await options.getToken();
+    if (callerSignal?.aborted) throw callerSignal.reason;
+    if (!token) throw new ApiError('unauthorized', 'Nenhum token do ClickUp configurado');
 
-      const controller = new AbortController();
-      let timedOut = false;
-      const timer = setTimeout(() => {
-        timedOut = true;
-        controller.abort();
-      }, timeoutMs);
-      const forwardAbort = () => controller.abort(callerSignal?.reason);
-      callerSignal?.addEventListener('abort', forwardAbort, { once: true });
+    const controller = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
+    const forwardAbort = () => controller.abort(callerSignal?.reason);
+    callerSignal?.addEventListener('abort', forwardAbort, { once: true });
 
+    try {
+      const response = await fetchImpl(buildUrl(baseUrl, path, requestOptions.query), {
+        method,
+        headers: {
+          Authorization: token,
+          ...(requestOptions.body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        },
+        body: requestOptions.body === undefined ? undefined : JSON.stringify(requestOptions.body),
+        signal: controller.signal,
+      });
+      controller.signal.throwIfAborted();
+      const info = rateLimitInfo(response.headers);
+      if (info) options.onRateLimitInfo?.(info);
+      if (!response.ok) throw errorFromResponse(response, now);
+      const text = await response.text();
+      controller.signal.throwIfAborted();
       try {
-        const response = await fetchImpl(buildUrl(baseUrl, path, requestOptions.query), {
-          headers: { Authorization: token },
-          signal: controller.signal,
-        });
-        const info = rateLimitInfo(response.headers);
-        if (info) options.onRateLimitInfo?.(info);
-        if (!response.ok) throw errorFromResponse(response, now);
-        try {
-          return (await response.json()) as T;
-        } catch {
-          throw new ApiError('http', 'Resposta inválida do ClickUp', { status: response.status });
-        }
-      } catch (error) {
-        if (error instanceof ApiError) throw error;
-        if (timedOut) throw new ApiError('timeout', 'O ClickUp demorou demais para responder');
-        // Cancelamento pedido por quem chamou: devolve o erro original para ser ignorado lá.
-        if (callerSignal?.aborted) throw error;
-        throw new ApiError('network', 'Sem conexão com o ClickUp');
-      } finally {
-        clearTimeout(timer);
-        callerSignal?.removeEventListener('abort', forwardAbort);
+        return (text.trim() === '' ? undefined : JSON.parse(text)) as T;
+      } catch {
+        throw new ApiError('http', 'Resposta inválida do ClickUp', { status: response.status });
       }
-    },
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      if (timedOut) throw new ApiError('timeout', 'O ClickUp demorou demais para responder');
+      // Cancelamento pedido por quem chamou: devolve o erro original para ser ignorado lá.
+      if (callerSignal?.aborted) throw error;
+      throw new ApiError('network', 'Sem conexão com o ClickUp');
+    } finally {
+      clearTimeout(timer);
+      callerSignal?.removeEventListener('abort', forwardAbort);
+    }
+  }
+
+  return {
+    get: (path, requestOptions) => request('GET', path, requestOptions),
+    request,
   };
 }

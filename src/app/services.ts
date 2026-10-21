@@ -1,5 +1,10 @@
 import { createEffect, createSignal, onCleanup, untrack } from 'solid-js';
-import { createHttpClient, type HttpClient, type RequestOptions } from '../api/http';
+import {
+  createHttpClient,
+  type HttpClient,
+  type HttpMethod,
+  type RequestOptions,
+} from '../api/http';
 import { createScheduler, type Requester, type ScheduledRequestOptions } from '../api/scheduler';
 import { getCurrentUser, getWorkspaces } from '../api/user';
 import type { DateContext } from '../domain/dates';
@@ -32,37 +37,42 @@ export function createServices(): Services {
     // O ClickUp não expõe esses headers ao navegador hoje; a dica vale se passar a expor.
     onRateLimitInfo: (info) => scheduler.noteRateLimit(info),
   });
-  const http: HttpClient = {
-    async get<T>(path: string, options?: RequestOptions) {
-      const requestToken = token.get();
-      try {
-        const result = await client.get<T>(path, options);
-        if (token.get() !== requestToken) {
-          throw new DOMException('A sessão mudou durante a requisição', 'AbortError');
-        }
-        return result;
-      } catch (error) {
-        // Um 401 de antes da troca de conta não pode desconectar o token atual.
-        if (token.get() !== requestToken) {
-          throw new DOMException('A sessão mudou durante a requisição', 'AbortError');
-        }
-        throw error;
+  async function sessionRequest<T>(method: HttpMethod, path: string, options?: RequestOptions) {
+    const requestToken = token.get();
+    try {
+      const result = await client.request<T>(method, path, options);
+      if (token.get() !== requestToken) {
+        throw new DOMException('A sessão mudou durante a requisição', 'AbortError');
       }
-    },
+      return result;
+    } catch (error) {
+      // Um 401 de antes da troca de conta não pode desconectar o token atual.
+      if (token.get() !== requestToken) {
+        throw new DOMException('A sessão mudou durante a requisição', 'AbortError');
+      }
+      throw error;
+    }
+  }
+  const http: HttpClient = {
+    get: (path, options) => sessionRequest('GET', path, options),
+    request: sessionRequest,
   };
   // Todas as chamadas à API passam por um único agendador.
   const scheduler = createScheduler({
     http,
     onUnauthorized: () => void session.handleUnauthorized(),
   });
-  const requester: Requester = {
-    get<T>(path: string, options: ScheduledRequestOptions = {}) {
+  const requester = {
+    get<T>(path: string, options: ScheduledRequestOptions = {}): Promise<T> {
+      return requester.request<T>('GET', path, options);
+    },
+    request<T>(method: HttpMethod, path: string, options: ScheduledRequestOptions = {}) {
       const signal = options.signal
         ? AbortSignal.any([options.signal, sessionRequests.signal])
         : sessionRequests.signal;
-      return scheduler.get<T>(path, { ...options, signal });
+      return scheduler.request<T>(method, path, { ...options, signal });
     },
-  };
+  } satisfies Requester;
   const snapshots = createSnapshotStore();
   const session = createSessionService({
     secrets: platform.secrets,
@@ -106,14 +116,17 @@ export function createServices(): Services {
       if (!key || !user || !workspaceId) return;
       const requests = new AbortController();
       workspaceRequests = requests;
-      const workspaceRequester: Requester = {
-        get<T>(path: string, options: ScheduledRequestOptions = {}) {
+      const workspaceRequester = {
+        get<T>(path: string, options: ScheduledRequestOptions = {}): Promise<T> {
+          return workspaceRequester.request<T>('GET', path, options);
+        },
+        request<T>(method: HttpMethod, path: string, options: ScheduledRequestOptions = {}) {
           const signal = options.signal
             ? AbortSignal.any([options.signal, requests.signal])
             : requests.signal;
-          return requester.get<T>(path, { ...options, signal });
+          return requester.request<T>(method, path, { ...options, signal });
         },
-      };
+      } satisfies Requester;
       createWorkspaceServices({
         workspaceId,
         userId: user.id,

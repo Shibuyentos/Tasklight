@@ -137,3 +137,88 @@ describe('createHttpClient().get', () => {
     await assertion;
   });
 });
+
+describe('createHttpClient().request', () => {
+  it('descarta sucesso tardio de POST quando o transporte ignora cancelamento', async () => {
+    let finish!: (response: Response) => void;
+    const fetchMock = vi.fn<typeof fetch>(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const controller = new AbortController();
+    const result = clientWith(fetchMock).request('POST', '/task/1/comment', {
+      body: { text: 'Comentário' },
+      signal: controller.signal,
+    });
+    const assertion = expect(result).rejects.toMatchObject({ name: 'AbortError' });
+    await Promise.resolve();
+    controller.abort();
+    finish(jsonResponse(200, { id: 'late' }));
+    await assertion;
+  });
+
+  it('timeout durante leitura do corpo continua sendo timeout', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn<typeof fetch>(async (_input, init) => {
+      const response = jsonResponse(200, {});
+      response.text = () =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), {
+            once: true,
+          });
+        });
+      return response;
+    });
+    const assertion = expect(
+      clientWith(fetchMock).request('POST', '/task/1/comment'),
+    ).rejects.toMatchObject({ kind: 'timeout' });
+    await vi.advanceTimersByTimeAsync(30_000);
+    await assertion;
+  });
+
+  it('envia POST JSON e token somente no header', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse(200, { id: 'task-1' }));
+    const client = clientWith(fetchMock);
+
+    await expect(
+      client.request('POST', '/list/1/task', { body: { name: 'Nova tarefa' } }),
+    ).resolves.toEqual({ id: 'task-1' });
+
+    const call = fetchMock.mock.calls[0];
+    if (!call) throw new Error('O POST não chegou ao transporte');
+    const [url, init] = call;
+    expect(String(url)).toBe('https://api.clickup.com/api/v2/list/1/task');
+    expect(init?.method).toBe('POST');
+    expect(new Headers(init?.headers).get('Authorization')).toBe(TOKEN);
+    expect(new Headers(init?.headers).get('Content-Type')).toBe('application/json');
+    expect(init?.body).toBe('{"name":"Nova tarefa"}');
+    expect(String(url)).not.toContain(TOKEN);
+    expect(init?.body).not.toContain(TOKEN);
+  });
+
+  it.each([204, 200])('aceita HTTP %i com retorno vazio', async (status) => {
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response(null, { status }));
+    await expect(clientWith(fetchMock).request('DELETE', '/task/1')).resolves.toBeUndefined();
+  });
+
+  it('erro POST não ecoa token nem corpo recebido', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse(500, { token: TOKEN }));
+    const error = await clientWith(fetchMock)
+      .request('POST', '/task/1/comment', {
+        body: { comment_text: 'Texto privado' },
+      })
+      .catch((reason: unknown) => reason);
+    expect(error).toMatchObject({ kind: 'server', status: 500 });
+    expect(String(error)).not.toContain(TOKEN);
+    expect(String(error)).not.toContain('Texto privado');
+  });
+
+  it('JSON não vazio e inválido continua sendo erro', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response('invalid', { status: 200 }));
+    await expect(
+      clientWith(fetchMock).request('PUT', '/task/1', { body: { name: 'Outra' } }),
+    ).rejects.toMatchObject({ kind: 'http', status: 200 });
+  });
+});
