@@ -1,0 +1,19 @@
+# Dependências e builds
+node_modules/
+dist/
+dev-dist/
+coverage/
+*.tsbuildinfo
+
+# Segredos: o token pessoal do ClickUp nunca entra no repositório
+.env
+.env.*
+!.env.example
+
+# Referências visuais locais (screenshots e medições do ClickUp contêm dados internos)
+.reference/
+
+# Logs e arquivos de sistema
+*.log
+Thumbs.db
+.DS_Store
