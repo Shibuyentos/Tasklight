@@ -1,0 +1,51 @@
+{
+  "description": "Medidas da casca do ClickUp (tema escuro) em 1919x910, usadas para conferir o Tasklight com scripts/ui-metrics.js. Tamanhos com tolerância de 1px; cores exatas.",
+  "viewport": { "width": 1919, "height": 910 },
+  "selectors": {
+    "tasklight": {
+      "topbar": "[data-ui=\"topbar\"]",
+      "workspace-switcher": "[data-ui=\"workspace-switcher\"]",
+      "search": "[data-ui=\"search\"]",
+      "rail": "[data-ui=\"rail\"]",
+      "rail-item": "[data-ui=\"rail-item\"]",
+      "card": "[data-ui=\"card\"]",
+      "sidebar": "[data-ui=\"sidebar\"]",
+      "sidebar-header": "[data-ui=\"sidebar-header\"]",
+      "sidebar-row": "[data-ui=\"sidebar-row\"]"
+    },
+    "clickup": {
+      "topbar": "cu-global-actions-bar",
+      "workspace-switcher": "cu-workspace-picker-toggle button.toggle",
+      "search": "cu-search-modal-toggle button.search-button",
+      "rail": ".cu-simple-bar__container-inner",
+      "rail-item": "cu-simple-bar-item",
+      "card": ".cu-manager2__body-inner-wrapper",
+      "sidebar": ".cu-nav-sidebar__container",
+      "sidebar-header": "cu-sidebar-header",
+      "sidebar-row": "cu-sidebar-row-layout"
+    }
+  },
+  "expected": {
+    "topbar": { "x": 0, "y": 0, "height": 40 },
+    "workspace-switcher": {
+      "x": 6,
+      "y": 6,
+      "height": 28,
+      "backgroundColor": "rgba(255, 255, 255, 0.07)",
+      "borderRadius": "6px"
+    },
+    "search": { "y": 6, "width": 360, "height": 28, "backgroundColor": "rgb(42, 42, 42)" },
+    "rail": {
+      "x": 6,
+      "y": 40,
+      "width": 52,
+      "backgroundColor": "rgb(25, 25, 25)",
+      "borderRadius": "8px"
+    },
+    "rail-item": { "width": 32, "height": 62 },
+    "card": { "x": 64, "y": 40, "backgroundColor": "rgb(9, 9, 9)", "borderRadius": "8px" },
+    "sidebar": { "x": 65, "y": 41, "width": 256, "backgroundColor": "rgb(25, 25, 25)" },
+    "sidebar-header": { "height": 40, "backgroundColor": "rgb(25, 25, 25)" },
+    "sidebar-row": { "height": 28, "borderRadius": "7px", "fontSize": "14px" }
+  }
+}

@@ -1,0 +1,349 @@
+/* Medidas tiradas da interface real do ClickUp em 1919×910 (tema escuro). */
+
+.shell {
+  display: grid;
+  grid-template-rows: var(--topbar-height) minmax(0, 1fr);
+  height: 100%;
+}
+
+/* Barra global */
+
+.topbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--topbar-height);
+  padding: 0 6px;
+}
+
+.workspaceSwitcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px 0 7px;
+  border: 0;
+  border-radius: var(--radius-3);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.workspaceSwitcher:hover,
+.workspaceSwitcher[data-expanded] {
+  background: var(--bg-hover-strong);
+}
+
+.decoration {
+  display: inline-flex;
+}
+
+.chevron {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.search {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 360px;
+  max-width: calc(100% - 360px);
+  height: 28px;
+  padding: 0 12px 0 8px;
+  border: 0;
+  border-radius: var(--radius-round);
+  background: var(--bg-search);
+  color: var(--text-search);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: 16px;
+  transform: translateX(-50%);
+  cursor: default;
+}
+
+.searchShortcut {
+  color: var(--text-disabled);
+  font-size: var(--font-size-xs);
+}
+
+.userMenu {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 32px;
+  padding: 0 4px 0 3px;
+  border: 0;
+  border-radius: var(--radius-3-5);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.userMenu:hover,
+.userMenu[data-expanded] {
+  background: var(--bg-hover);
+}
+
+.menuLabel {
+  flex: 1;
+}
+
+/* Corpo: trilho + cartão (barra lateral e área principal) */
+
+.body {
+  display: flex;
+  min-height: 0;
+  padding: 0 6px 6px 0;
+}
+
+.rail {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  width: 52px;
+  margin: 0 6px;
+  padding-top: 4px;
+  border-radius: var(--radius-4);
+  background: var(--bg-subtle);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.106),
+    0 2px 4px -2px rgba(0, 0, 0, 0.106);
+}
+
+.railExpand {
+  margin-top: 4px;
+}
+
+.railSeparator {
+  width: 24px;
+  height: 1px;
+  margin: 14px 0 5px;
+  background: var(--border-default);
+}
+
+.railItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 32px;
+  height: 62px;
+  color: rgb(255, 255, 255);
+  text-decoration: none;
+}
+
+.railIcon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-top: 2px;
+}
+
+.homeIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-round);
+  background: linear-gradient(135deg, var(--accent), rgb(233, 61, 130));
+  color: rgb(255, 255, 255);
+}
+
+.railLabel {
+  margin-top: -4px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.railItemActive .railLabel {
+  font-weight: 700;
+}
+
+.card {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-4);
+  background: var(--bg-main-dark);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.055);
+}
+
+/* Barra lateral */
+
+.sidebar {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: var(--sidebar-width);
+  border-right: 1px solid var(--border-default);
+  background: var(--bg-subtle);
+}
+
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: var(--sidebar-header-height);
+  padding: 8px 8px 4px 12px;
+  background: var(--bg-subtle);
+}
+
+.headerButton {
+  border-radius: var(--radius-3-5);
+  color: var(--text-tertiary);
+}
+
+.sidebarTitle {
+  flex: 1;
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 18px 8px 8px;
+  overflow-y: auto;
+}
+
+.row {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  height: var(--sidebar-row-height);
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-3-5);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 16px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--bg-hover);
+}
+
+.rowActive {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.rowIcon {
+  flex: none;
+  color: var(--text-tertiary);
+}
+
+.childRow {
+  gap: 7px;
+  margin-left: 20px;
+  padding-left: 5px;
+}
+
+.childIcon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--text-tertiary);
+}
+
+/* Área principal */
+
+.main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: var(--radius-2);
+  background: var(--bg-main);
+}
+
+.mainHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  height: 38px;
+  padding: 12px 13px 0;
+}
+
+.mainTitle {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.tabs {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  height: 36px;
+  padding: 0 8px 1px;
+}
+
+.tabs::before {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: var(--border-default);
+  content: "";
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 5px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.tabActive {
+  color: var(--text-primary);
+}
+
+.tabActive::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: var(--text-primary);
+  content: "";
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}

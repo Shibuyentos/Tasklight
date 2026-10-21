@@ -19,4 +19,20 @@ export const ptBR = {
 
   'offline.title': 'Sem conexão com o ClickUp',
   'offline.retry': 'Tentar novamente',
+
+  'shell.mainNav': 'Navegação principal',
+  'shell.home': 'Início',
+  'shell.myTasks': 'Minhas tarefas',
+  'shell.assignedToMe': 'Atribuídas a mim',
+  'shell.todayOverdue': 'Hoje e atrasadas',
+  'shell.search': 'Pesquisar',
+  'shell.searchShortcut': 'Ctrl K',
+  'shell.workspaces': 'Espaços de trabalho',
+  'shell.switchToken': 'Trocar token',
+  'shell.expandSidebar': 'Expandir barra lateral',
+  'shell.collapseSidebar': 'Recolher barra lateral',
+  'shell.views': 'Visualizações',
+  'shell.tasksTab': 'Tarefas',
+
+  'myTasks.placeholder': 'Suas tarefas aparecem aqui.',
 } as const;

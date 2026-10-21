@@ -1,3 +1,42 @@
-export default function App() {
-  return <div data-testid="app-root" />;
+import { Navigate, Route, Router } from '@solidjs/router';
+import { Match, onMount, Switch } from 'solid-js';
+import { type Services, ServicesProvider, useServices } from './app/ServicesContext';
+import { createServices } from './app/services';
+import { MyTasksPage } from './features/my-tasks/MyTasksPage';
+import { OfflineScreen } from './features/onboarding/OfflineScreen';
+import { TokenScreen } from './features/onboarding/TokenScreen';
+import { AppShell } from './features/shell/AppShell';
+import { DEFAULT_WORKSPACE_ID } from './sync/session';
+
+function RedirectHome() {
+  const { session } = useServices();
+  return <Navigate href={`/${session.state.workspaceId ?? DEFAULT_WORKSPACE_ID}/my-work/tasks`} />;
+}
+
+export default function App(props: { services?: Services }) {
+  const services = props.services ?? createServices();
+  const { session } = services;
+  onMount(() => void session.boot());
+
+  return (
+    <ServicesProvider services={services}>
+      <div data-testid="app-root" style={{ height: '100%' }}>
+        <Switch>
+          <Match when={session.state.status === 'needs-token'}>
+            <TokenScreen />
+          </Match>
+          <Match when={session.state.status === 'offline-error'}>
+            <OfflineScreen />
+          </Match>
+          <Match when={session.state.status === 'ready'}>
+            <Router root={AppShell}>
+              <Route path="/:workspaceId/my-work/tasks" component={MyTasksPage} />
+              <Route path="/:workspaceId/my-work/today" component={MyTasksPage} />
+              <Route path="*" component={RedirectHome} />
+            </Router>
+          </Match>
+        </Switch>
+      </div>
+    </ServicesProvider>
+  );
 }

@@ -35,6 +35,13 @@ npm run dev:token -- caminho/para/outro/.env
 O token do `.env.local` só é usado pelo `npm run dev`. O `npm run build` nunca o inclui e
 falha se encontrar qualquer token em `dist/`.
 
+## Conferir medidas
+
+A interface segue as medidas do ClickUp em 1919×910. Para comparar as duas na mesma resolução,
+cole `scripts/ui-metrics.js` no console do DevTools de cada página e chame `uiMetrics(...)` com os
+seletores de `scripts/ui-reference.json`. O mesmo arquivo traz os valores esperados: tamanhos com
+tolerância de 1px e cores exatas.
+
 ## Scripts
 
 | Script | O que faz |

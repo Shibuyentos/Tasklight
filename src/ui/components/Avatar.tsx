@@ -3,7 +3,7 @@ import { readableTextColor } from '../../domain/color';
 import styles from './Avatar.module.css';
 
 // Iniciais em 12px num avatar de 24px, como no ClickUp; os demais tamanhos seguem a proporção.
-const FONT_SIZE = { 16: 8, 20: 10, 24: 12, 32: 14 } as const;
+const FONT_SIZE = { 16: 8, 18: 9, 20: 10, 24: 12, 32: 14 } as const;
 
 export type AvatarSize = keyof typeof FONT_SIZE;
 

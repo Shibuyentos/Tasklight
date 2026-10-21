@@ -8,6 +8,7 @@
   --bg-subtle: rgb(25, 25, 25);
   --bg-strong: rgb(34, 34, 34);
   --bg-hover: rgba(255, 255, 255, 0.0706);
+  --bg-hover-strong: rgba(255, 255, 255, 0.1059);
   --bg-elevated: rgb(42, 42, 42);
   --bg-menu: rgb(25, 25, 25);
   --bg-tooltip: rgb(42, 42, 42);
