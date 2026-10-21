@@ -1,0 +1,15 @@
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+  padding: 0 8px 0 16px;
+  background: var(--bg-strong);
+  color: var(--warning-text);
+  font-size: var(--font-size-base);
+  line-height: 1.4;
+}
+
+.message {
+  flex: 1;
+}
