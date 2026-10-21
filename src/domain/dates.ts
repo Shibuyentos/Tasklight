@@ -275,3 +275,20 @@ export function formatNumericDate(ms: number, timeZone: string): string {
     ? date
     : `${date}, ${formatTime(ms, timeZone, { compact: true })}`;
 }
+
+/** "10/1" no ano corrente e "10/1/25" em outros anos; com hora quando houver, como no detalhe do ClickUp. */
+export function formatShortNumericDate(ms: number, ctx: DateContext): string {
+  const { year, month, day } = localParts(ms, ctx.timeZone);
+  const sameYear = year === localParts(ctx.now, ctx.timeZone).year;
+  const date = sameYear ? `${month}/${day}` : `${month}/${day}/${String(year).slice(-2)}`;
+  return isDateOnly(ms, ctx.timeZone)
+    ? date
+    : `${date}, ${formatTime(ms, ctx.timeZone, { compact: true })}`;
+}
+
+/** "out 21" no ano corrente e "out 21, 2025" em outros anos, como "Criada em" do ClickUp. */
+export function formatMonthDay(ms: number, ctx: DateContext): string {
+  const { year, month, day } = localParts(ms, ctx.timeZone);
+  const label = `${MONTHS[month - 1]?.slice(0, 3) ?? ''} ${day}`;
+  return year === localParts(ctx.now, ctx.timeZone).year ? label : `${label}, ${year}`;
+}

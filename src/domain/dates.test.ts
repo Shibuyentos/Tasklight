@@ -7,7 +7,9 @@ import {
   dayLabel,
   dueTone,
   formatDueDate,
+  formatMonthDay,
   formatNumericDate,
+  formatShortNumericDate,
   formatTime,
   isDateOnly,
   isDueByToday,
@@ -201,5 +203,18 @@ describe('rótulos de data', () => {
   it('formatNumericDate mostra a hora só quando há hora', () => {
     expect(formatNumericDate(dateOnly('2026-11-03'), ctx.timeZone)).toBe('11/3/26');
     expect(formatNumericDate(local('2026-07-08T15:30:00'), ctx.timeZone)).toBe('7/8/26, 3:30pm');
+  });
+});
+
+describe('datas do detalhe', () => {
+  it('formatShortNumericDate omite o ano corrente e mostra a hora quando houver', () => {
+    expect(formatShortNumericDate(dateOnly('2026-10-01'), ctx)).toBe('10/1');
+    expect(formatShortNumericDate(dateOnly('2025-12-30'), ctx)).toBe('12/30/25');
+    expect(formatShortNumericDate(local('2026-11-10T15:30:00'), ctx)).toBe('11/10, 3:30pm');
+  });
+
+  it('formatMonthDay segue o "Criada em" do ClickUp', () => {
+    expect(formatMonthDay(local('2026-10-21T09:45:00'), ctx)).toBe('out 21');
+    expect(formatMonthDay(local('2025-09-25T09:45:00'), ctx)).toBe('set 25, 2025');
   });
 });

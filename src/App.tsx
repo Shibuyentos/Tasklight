@@ -3,14 +3,12 @@ import { Match, onMount, Switch } from 'solid-js';
 import { AppErrorBoundary } from './app/AppErrorBoundary';
 import { type Services, ServicesProvider, useServices } from './app/ServicesContext';
 import { createServices } from './app/services';
+import { TaskRoute } from './app/TaskRoute';
 import { WorkspaceRoute } from './app/WorkspaceRoute';
-import { MyTasksPage } from './features/my-tasks/MyTasksPage';
 import { OfflineScreen } from './features/onboarding/OfflineScreen';
 import { TokenScreen } from './features/onboarding/TokenScreen';
 import { AppShell } from './features/shell/AppShell';
 import { DEFAULT_WORKSPACE_ID } from './sync/session';
-
-const TodayPage = () => <MyTasksPage filter="today" />;
 
 function RedirectHome() {
   const { session } = useServices();
@@ -35,9 +33,10 @@ export default function App(props: { services?: Services }) {
             </Match>
             <Match when={session.state.status === 'ready'}>
               <Router root={AppShell}>
-                <Route path="/:workspaceId" component={WorkspaceRoute}>
-                  <Route path="/my-work/tasks" component={MyTasksPage} />
-                  <Route path="/my-work/today" component={TodayPage} />
+                <Route component={WorkspaceRoute}>
+                  <Route path="/:workspaceId/my-work/tasks" />
+                  <Route path="/:workspaceId/my-work/today" />
+                  <Route path="/t/:workspaceId/:taskId" component={TaskRoute} />
                 </Route>
                 <Route path="*" component={RedirectHome} />
               </Router>

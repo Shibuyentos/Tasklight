@@ -1,5 +1,6 @@
 import type { RouteSectionProps } from '@solidjs/router';
 import { onCleanup, Show } from 'solid-js';
+import { TaskNavigationProvider } from '../../app/task-navigation';
 import { StorageNotice } from '../onboarding/StorageNotice';
 import { MainHeader } from './MainHeader';
 import { OfflineNotice } from './OfflineNotice';
@@ -21,25 +22,27 @@ export function AppShell(props: RouteSectionProps) {
   onCleanup(() => window.removeEventListener('keydown', onKeyDown));
 
   return (
-    <div class={styles.shell}>
-      <TopBar />
-      <div class={styles.body}>
-        <Rail
-          sidebarCollapsed={sidebar.collapsed()}
-          onExpandSidebar={() => sidebar.setCollapsed(false)}
-        />
-        <div class={styles.card} data-ui="card">
-          <Show when={!sidebar.collapsed()}>
-            <Sidebar onCollapse={() => sidebar.setCollapsed(true)} />
-          </Show>
-          <main class={styles.main}>
-            <StorageNotice />
-            <OfflineNotice />
-            <MainHeader />
-            <div class={styles.content}>{props.children}</div>
-          </main>
+    <TaskNavigationProvider>
+      <div class={styles.shell}>
+        <TopBar />
+        <div class={styles.body}>
+          <Rail
+            sidebarCollapsed={sidebar.collapsed()}
+            onExpandSidebar={() => sidebar.setCollapsed(false)}
+          />
+          <div class={styles.card} data-ui="card">
+            <Show when={!sidebar.collapsed()}>
+              <Sidebar onCollapse={() => sidebar.setCollapsed(true)} />
+            </Show>
+            <main class={styles.main}>
+              <StorageNotice />
+              <OfflineNotice />
+              <MainHeader />
+              <div class={styles.content}>{props.children}</div>
+            </main>
+          </div>
         </div>
       </div>
-    </div>
+    </TaskNavigationProvider>
   );
 }

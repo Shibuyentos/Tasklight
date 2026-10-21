@@ -1,5 +1,6 @@
 import { createMemo, type JSX, Show } from 'solid-js';
 import type { WorkspaceServices } from '../../app/ServicesContext';
+import { TaskLink } from '../../app/task-navigation';
 import type { Task } from '../../domain/task';
 import type { TaskChanges } from '../../domain/task-detail';
 import { taskTypeChoices } from '../../domain/task-types';
@@ -60,6 +61,8 @@ export function TaskRow(props: {
   item: RowItem;
   workspace: WorkspaceServices;
   feedback?: EditFeedback;
+  /** Abre o detalhe por cima da lista; sem ele, o nome abre a tarefa no ClickUp. */
+  onOpen?: (taskId: string) => void;
   onToggle: () => void;
 }) {
   const task = () => props.item.task;
@@ -115,16 +118,34 @@ export function TaskRow(props: {
             </StatusPicker>
           )}
         </Show>
-        <a
-          class={styles.name}
-          href={task().url}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-testid="task-name"
-          data-ui="task-name"
+        <Show
+          when={props.onOpen}
+          fallback={
+            <a
+              class={styles.name}
+              href={task().url}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="task-name"
+              data-ui="task-name"
+            >
+              {task().name}
+            </a>
+          }
         >
-          {task().name}
-        </a>
+          {(open) => (
+            <TaskLink
+              class={styles.name}
+              workspaceId={props.workspace.workspaceId}
+              taskId={task().id}
+              onOpen={() => open()(task().id)}
+              data-testid="task-name"
+              data-ui="task-name"
+            >
+              {task().name}
+            </TaskLink>
+          )}
+        </Show>
         <span class={styles.indicators}>
           <Show when={(subtasks() ?? 0) > 0}>
             <button

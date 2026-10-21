@@ -1,0 +1,412 @@
+/* Modal da tarefa medido no ClickUp em 1919×910: 1631×862, raio 12px, duas colunas roláveis. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: var(--overlay);
+}
+
+.positioner {
+  position: fixed;
+  inset: 0;
+  z-index: 41;
+  display: grid;
+  place-items: center;
+  padding: 24px max(16px, calc((100vw - 1631px) / 2));
+  pointer-events: none;
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  width: min(1631px, 100%);
+  height: min(862px, 100%);
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--bg-main);
+  box-shadow: var(--elevation-menu);
+  color: var(--text-primary);
+  outline: none;
+  pointer-events: auto;
+}
+
+.header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 45px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.headerNav {
+  display: flex;
+  gap: 0;
+}
+
+.headerSpacer {
+  flex: 1;
+}
+
+.headerButton {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-3);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.headerButton:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.headerButton:disabled {
+  color: var(--text-disabled);
+  cursor: default;
+}
+
+.headerButton:focus-visible {
+  outline: 1px solid var(--text-primary);
+  outline-offset: -1px;
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(96, 96, 96) var(--bg-main);
+}
+
+/* Conteúdo útil de 902px a partir de x223, como no ClickUp. */
+.content {
+  max-width: 1029px;
+  padding: 38px 48px 48px 79px;
+}
+
+.title {
+  margin: 0;
+  padding: 3px 5px;
+  font: 600 var(--font-size-2xl) / 35px var(--font-family);
+  overflow-wrap: anywhere;
+}
+
+.activity {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 560px;
+  min-height: 0;
+  border-left: 1px solid var(--border-default);
+}
+
+.activityTitle {
+  margin: 0;
+  padding: 16px 17px;
+  font: 600 var(--font-size-sm) / 16px var(--font-family);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  margin-left: 30px;
+  overflow: hidden;
+  font: 400 var(--font-size-sm) / 16px var(--font-family);
+  white-space: nowrap;
+}
+
+.breadcrumbPart {
+  overflow: hidden;
+  color: var(--text-secondary);
+  text-overflow: ellipsis;
+}
+
+.breadcrumbCurrent {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-weight: 500;
+  text-overflow: ellipsis;
+}
+
+.breadcrumbDivider {
+  color: var(--text-disabled);
+}
+
+.createdAt {
+  flex: none;
+  padding: 0 7px;
+  color: var(--text-tertiary);
+  font: 400 var(--font-size-xs) / 12px var(--font-family);
+}
+
+.typeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  margin: 0 0 8px 2px;
+}
+
+.typePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-3-5);
+  color: var(--text-secondary);
+  font: 500 var(--font-size-sm) / 16px var(--font-family);
+}
+
+.idButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--radius-3);
+  background: transparent;
+  color: var(--text-secondary);
+  font: 500 var(--font-size-xs) / 16px var(--font-family);
+  cursor: pointer;
+}
+
+.idButton:hover {
+  background: var(--bg-hover);
+}
+
+.titleEditable {
+  border: 1px solid transparent;
+  border-radius: var(--radius-4);
+  cursor: text;
+}
+
+.titleEditable:hover {
+  border-color: var(--border-default);
+}
+
+.titleInput {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--border-high);
+  border-radius: var(--radius-4);
+  background: transparent;
+  color: var(--text-primary);
+  resize: none;
+  field-sizing: content;
+  outline: none;
+}
+
+.loading {
+  margin: 24px 6px;
+  color: var(--text-tertiary);
+  font: 400 var(--font-size-sm) / 16px var(--font-family);
+}
+
+/* Propriedades: rótulos em x251/701 e valores em x387/837 no ClickUp (colunas de 450px). */
+.properties {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 450px));
+  column-gap: 0;
+  margin: 24px 0 0;
+  padding: 0 8px 18px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.propertyColumn {
+  display: flex;
+  flex-direction: column;
+}
+
+.property {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+}
+
+.propertyLabel {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  width: 156px;
+  color: var(--text-tertiary);
+  font: 400 var(--font-size-sm) / 16px var(--font-family);
+}
+
+.propertyIcon {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+}
+
+.propertyValue {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+}
+
+.empty,
+.placeholder {
+  color: var(--text-placeholder);
+}
+
+.valueButton {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 28px;
+  padding: 2px 6px;
+  margin-left: -6px;
+  border: 0;
+  border-radius: var(--radius-3);
+  background: transparent;
+  color: var(--text-primary);
+  font: 400 var(--font-size-sm) / 16px var(--font-family);
+  text-align: left;
+  cursor: pointer;
+}
+
+.valueButton:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.valueButton:disabled {
+  cursor: default;
+}
+
+.valueButton:focus-visible,
+.statusPill:focus-visible,
+.statusStep:focus-visible,
+.statusDone:focus-visible {
+  outline: 1px solid var(--text-primary);
+  outline-offset: 1px;
+}
+
+.readOnlyValue {
+  color: var(--text-primary);
+  font: 400 var(--font-size-sm) / 16px var(--font-family);
+}
+
+.statusControl {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.statusPill {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-2) 0 0 var(--radius-2);
+  background: transparent;
+  cursor: pointer;
+}
+
+.statusPillInner {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--radius-2) 0 0 var(--radius-2);
+  color: rgb(255, 255, 255);
+  font: 600 var(--font-size-xs) / 16px var(--font-family);
+  text-transform: uppercase;
+}
+
+.statusStep,
+.statusDone {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.statusStep {
+  border-radius: 0 var(--radius-2) var(--radius-2) 0;
+}
+
+.statusDone {
+  margin-left: 4px;
+  border-radius: var(--radius-2);
+}
+
+.statusStep:hover:not(:disabled),
+.statusDone:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.dates {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+
+.dates > svg {
+  color: var(--text-secondary);
+}
+
+.datesArrow {
+  margin: 0 4px;
+  color: var(--text-tertiary);
+}
+
+.tags,
+.people {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.person {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.priority {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.estimateInput {
+  width: 140px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--border-high);
+  border-radius: var(--radius-3);
+  background: var(--bg-strong);
+  color: var(--text-primary);
+  font: 400 var(--font-size-sm) / 16px var(--font-family);
+  outline: none;
+}
+
+.estimateInvalid {
+  border-color: var(--danger-text);
+}

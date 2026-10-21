@@ -1,5 +1,6 @@
 import { createMemo, createSignal, For, Match, Show, Switch } from 'solid-js';
 import { useServices, type WorkspaceServices } from '../../app/ServicesContext';
+import { useTaskNavigation } from '../../app/task-navigation';
 import { isDueByToday } from '../../domain/dates';
 import { groupByStatus } from '../../domain/grouping';
 import { t } from '../../i18n';
@@ -40,6 +41,12 @@ function MyTasksContent(props: {
   const { store, sync, userId } = props.workspace;
   const [expanded, setExpanded] = createSignal<ReadonlySet<string>>(new Set());
   const feedback = createEditFeedback();
+  const navigation = useTaskNavigation();
+  // Anterior/próxima no detalhe seguem as linhas da lista no momento da abertura.
+  const openTask = (taskId: string) =>
+    navigation?.open(taskId, {
+      sequence: items().flatMap((item) => (item.kind === 'row' ? [item.task.id] : [])),
+    });
 
   const roots = createMemo(() => {
     const tasks = assignedRoots(store.state, userId);
@@ -73,6 +80,7 @@ function MyTasksContent(props: {
             items={items()}
             workspace={props.workspace}
             feedback={feedback}
+            onOpenTask={navigation ? openTask : undefined}
             onToggleGroup={(key) => props.prefs.toggleGroup(key)}
             onToggleTask={toggleTask}
           />

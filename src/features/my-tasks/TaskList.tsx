@@ -22,6 +22,7 @@ export interface TaskListProps {
   onToggleTask: (taskId: string) => void;
   /** Sem ela, as linhas ficam só de leitura. */
   feedback?: EditFeedback;
+  onOpenTask?: (taskId: string) => void;
 }
 
 function asGroup(item: ListItem | undefined): GroupItem | undefined {
@@ -130,6 +131,7 @@ export function TaskList(props: TaskListProps) {
                           item={row()}
                           workspace={props.workspace}
                           feedback={props.feedback}
+                          onOpen={props.onOpenTask}
                           onToggle={() => props.onToggleTask(row().task.id)}
                         />
                       )}

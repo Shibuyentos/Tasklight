@@ -1,7 +1,8 @@
-import { A } from '@solidjs/router';
+import { A, useLocation } from '@solidjs/router';
 import { CalendarDays, ChevronsLeft, UserRoundCheck } from 'lucide-solid';
 import { createSignal, Show } from 'solid-js';
 import { useServices } from '../../app/ServicesContext';
+import { type ListView, parseAppLocation, useTaskNavigation } from '../../app/task-navigation';
 import { t } from '../../i18n';
 import { Avatar } from '../../ui/components/Avatar';
 import { IconButton } from '../../ui/components/IconButton';
@@ -12,6 +13,11 @@ export function Sidebar(props: { onCollapse: () => void }) {
   const [myTasksExpanded, setMyTasksExpanded] = createSignal(true);
   const myWork = () => `/${session.state.workspaceId}/my-work`;
   const childRow = `${styles.row} ${styles.childRow}`;
+  const location = useLocation();
+  const navigation = useTaskNavigation();
+  // Com o detalhe aberto, a visão que ficou atrás dele continua marcada.
+  const behindDetail = (view: ListView) =>
+    parseAppLocation(location.pathname)?.kind === 'task' && navigation?.background() === view;
 
   return (
     <aside class={styles.sidebar} data-ui="sidebar">
@@ -39,7 +45,13 @@ export function Sidebar(props: { onCollapse: () => void }) {
         </button>
 
         <Show when={myTasksExpanded()}>
-          <A href={`${myWork()}/tasks`} end class={childRow} activeClass={styles.rowActive}>
+          <A
+            href={`${myWork()}/tasks`}
+            end
+            class={childRow}
+            activeClass={styles.rowActive}
+            classList={{ [styles.rowActive ?? '']: behindDetail('tasks') }}
+          >
             <span class={styles.childIcon} aria-hidden="true">
               <Show when={session.state.user}>
                 {(user) => (
@@ -54,7 +66,13 @@ export function Sidebar(props: { onCollapse: () => void }) {
             </span>
             <span>{t('shell.assignedToMe')}</span>
           </A>
-          <A href={`${myWork()}/today`} end class={childRow} activeClass={styles.rowActive}>
+          <A
+            href={`${myWork()}/today`}
+            end
+            class={childRow}
+            activeClass={styles.rowActive}
+            classList={{ [styles.rowActive ?? '']: behindDetail('today') }}
+          >
             <span class={styles.childIcon} aria-hidden="true">
               <CalendarDays size={16} />
             </span>
