@@ -1,0 +1,29 @@
+*,
+::before,
+::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+}
+
+/* A raiz do ClickUp usa 13px com line-height de 13px; cada componente define a sua altura de linha. */
+body {
+  margin: 0;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  line-height: 1;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+#root {
+  height: 100vh;
+}
