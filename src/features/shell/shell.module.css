@@ -347,3 +347,17 @@
   min-height: 0;
   overflow: auto;
 }
+
+/* Aviso de falta de conexão */
+
+.offlineNotice {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 16px;
+  background: var(--bg-strong);
+  color: var(--warning-text);
+  font-size: var(--font-size-base);
+}

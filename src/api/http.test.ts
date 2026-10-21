@@ -97,6 +97,28 @@ describe('createHttpClient().get', () => {
     await expect(clientWith(fetchMock).get('/user')).rejects.toMatchObject({ kind: 'network' });
   });
 
+  it('informa o limite restante a cada resposta', async () => {
+    const onRateLimitInfo = vi.fn();
+    const fetchMock = vi.fn<typeof fetch>(async () =>
+      jsonResponse(200, {}, { 'X-RateLimit-Remaining': '42', 'X-RateLimit-Reset': '105' }),
+    );
+
+    await clientWith(fetchMock, { onRateLimitInfo }).get('/user');
+
+    expect(onRateLimitInfo).toHaveBeenCalledWith({ remaining: 42, resetAt: 105_000 });
+  });
+
+  it('um sinal já cancelado não chega a chamar a API', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse(200, {}));
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      clientWith(fetchMock).get('/user', { signal: controller.signal }),
+    ).rejects.toMatchObject({ name: 'AbortError' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('cancela a requisição após 30 s e falha como timeout', async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn<typeof fetch>(

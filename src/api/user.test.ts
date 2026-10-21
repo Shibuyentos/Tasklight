@@ -33,7 +33,20 @@ describe('getCurrentUser', () => {
       initials: 'AT',
       profilePicture: null,
       timezone: 'America/Sao_Paulo',
+      weekStartDay: 0,
     });
+  });
+
+  it('lê o primeiro dia da semana do usuário', async () => {
+    const http = fakeHttp({ '/user': { user: { id: 1, week_start_day: 1 } } });
+
+    await expect(getCurrentUser(http)).resolves.toMatchObject({ weekStartDay: 1 });
+  });
+
+  it('sem dia configurado, a semana começa no domingo', async () => {
+    const http = fakeHttp({ '/user': { user: { id: 1, week_start_day: null } } });
+
+    await expect(getCurrentUser(http)).resolves.toMatchObject({ weekStartDay: 0 });
   });
 });
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/errors';
 import type { ApiTeam, ApiUser } from '../api/types';
+import type { SessionCache } from '../persistence/snapshot';
 import type { SecretStore } from '../platform/types';
 import {
   createSessionService,
@@ -18,6 +19,7 @@ const USER: ApiUser = {
   color: null,
   initials: 'AT',
   profilePicture: null,
+  weekStartDay: 0,
 };
 
 function teams(...ids: string[]): ApiTeam[] {
@@ -38,6 +40,44 @@ function fakeSecrets(initial: string | null, persisted: boolean) {
   } satisfies SecretStore;
 }
 
+function fakeSessionCache(initial: SessionCache | null = null) {
+  let saved = initial;
+  return {
+    load: vi.fn(async () => saved),
+    save: vi.fn(async (cache: SessionCache) => {
+      saved = cache;
+    }),
+    clear: vi.fn(async () => {
+      saved = null;
+    }),
+  };
+}
+
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+const CACHED: SessionCache = {
+  userId: 1,
+  user: {
+    id: 1,
+    username: 'Ana (salva)',
+    initials: 'AT',
+    color: 'rgb(0, 145, 255)',
+    profilePicture: null,
+    timezone: 'America/Sao_Paulo',
+    weekStartDay: 0,
+  },
+  workspaces: [{ id: '3143793', name: 'MMLabbers', color: 'rgb(7, 160, 146)', avatar: null }],
+  savedAt: 1,
+};
+
 function memoryPrefs(initial: Record<string, string> = {}) {
   const data = new Map(Object.entries(initial));
   return {
@@ -54,6 +94,10 @@ interface SetupOptions {
   workspaces?: ApiTeam[];
   apiError?: unknown;
   prefs?: Pick<Storage, 'getItem' | 'setItem'>;
+  sessionCache?: ReturnType<typeof fakeSessionCache>;
+  /** Segura as respostas da API até ser liberado. */
+  gate?: Promise<void>;
+  user?: ApiUser;
 }
 
 function setup(options: SetupOptions = {}) {
@@ -63,13 +107,23 @@ function setup(options: SetupOptions = {}) {
   const api = {
     getCurrentUser: vi.fn(async () => {
       tokensSeenByApi.push(token.get());
+      await options.gate;
       if (options.apiError) throw options.apiError;
-      return USER;
+      return options.user ?? USER;
     }),
-    getWorkspaces: vi.fn(async () => options.workspaces ?? teams('900', DEFAULT_WORKSPACE_ID)),
+    getWorkspaces: vi.fn(async () => {
+      await options.gate;
+      return options.workspaces ?? teams('900', DEFAULT_WORKSPACE_ID);
+    }),
   };
   const prefs = options.prefs ?? memoryPrefs();
-  const service = createSessionService({ secrets, token, api, prefs });
+  const service = createSessionService({
+    secrets,
+    token,
+    api,
+    prefs,
+    sessionCache: options.sessionCache,
+  });
   return { service, secrets, token, api, prefs, tokensSeenByApi };
 }
 
@@ -189,7 +243,184 @@ describe('boot', () => {
   });
 });
 
+describe('boot com sessão salva', () => {
+  it.each(['success', 'unauthorized'] as const)(
+    'ignora a revalidação antiga (%s) depois de entrar com outra conta',
+    async (outcome) => {
+      const oldReply = deferred();
+      const cache = fakeSessionCache(CACHED);
+      const { service, api, token } = setup({ stored: 'pk_1_ABC123', sessionCache: cache });
+      api.getCurrentUser
+        .mockImplementationOnce(async () => {
+          await oldReply.promise;
+          if (outcome === 'unauthorized') {
+            throw new ApiError('unauthorized', 'token antigo recusado', { status: 401 });
+          }
+          return USER;
+        })
+        .mockResolvedValue({ ...USER, id: 2, username: 'Bruno Teste' });
+      api.getWorkspaces.mockImplementationOnce(async () => {
+        await oldReply.promise;
+        return teams(DEFAULT_WORKSPACE_ID);
+      });
+
+      await service.boot();
+      await service.signOut();
+      await expect(service.submitToken('pk_2_DEF456')).resolves.toBe('ok');
+      const savedCount = cache.save.mock.calls.length;
+
+      oldReply.resolve();
+      await flush();
+
+      expect(service.state.status).toBe('ready');
+      expect(service.state.user).toMatchObject({ id: 2, username: 'Bruno Teste' });
+      expect(token.get()).toBe('pk_2_DEF456');
+      expect(cache.save).toHaveBeenCalledTimes(savedCount);
+      expect(cache.clear).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('uma abertura sem cache não restaura a conta depois de sair', async () => {
+    const gate = deferred();
+    const cache = fakeSessionCache(null);
+    const { service, token } = setup({
+      stored: 'pk_1_ABC123',
+      sessionCache: cache,
+      gate: gate.promise,
+    });
+    const opening = service.boot();
+    await flush();
+
+    await service.signOut();
+    gate.resolve();
+    await opening;
+
+    expect(service.state.status).toBe('needs-token');
+    expect(service.state.user).toBeNull();
+    expect(token.get()).toBeNull();
+    expect(cache.save).not.toHaveBeenCalled();
+  });
+
+  it('fica pronto na hora, sem esperar a API', async () => {
+    const gate = deferred();
+    const { service, api } = setup({
+      stored: 'pk_1_ABC123',
+      sessionCache: fakeSessionCache(CACHED),
+      gate: gate.promise,
+    });
+
+    await service.boot();
+
+    expect(service.state.status).toBe('ready');
+    expect(service.state.user?.username).toBe('Ana (salva)');
+    expect(service.state.workspaceId).toBe('3143793');
+    expect(api.getCurrentUser).toHaveBeenCalled();
+    gate.resolve();
+  });
+
+  it('a validação em segundo plano atualiza o usuário e guarda a sessão', async () => {
+    const cache = fakeSessionCache(CACHED);
+    const { service } = setup({ stored: 'pk_1_ABC123', sessionCache: cache });
+
+    await service.boot();
+    await vi.waitFor(() => expect(cache.save).toHaveBeenCalled());
+
+    expect(service.state.user?.username).toBe('Ana Teste');
+    expect(cache.save.mock.calls[0]?.[0]).toMatchObject({
+      userId: 1,
+      user: { username: 'Ana Teste' },
+    });
+  });
+
+  it('token recusado na validação volta a pedir o token e apaga a sessão salva', async () => {
+    const cache = fakeSessionCache(CACHED);
+    const { service, secrets } = setup({
+      stored: 'pk_1_ABC123',
+      sessionCache: cache,
+      apiError: new ApiError('unauthorized', 'recusado', { status: 401 }),
+    });
+
+    await service.boot();
+    await vi.waitFor(() => expect(service.state.status).toBe('needs-token'));
+
+    expect(service.state.notice).toBe('invalid-token');
+    expect(secrets.clearToken).toHaveBeenCalled();
+    expect(cache.clear).toHaveBeenCalled();
+  });
+
+  it('sem rede na validação, continua com a conta salva', async () => {
+    const { service, api } = setup({
+      stored: 'pk_1_ABC123',
+      sessionCache: fakeSessionCache(CACHED),
+      apiError: new ApiError('network', 'sem rede'),
+    });
+
+    await service.boot();
+    await vi.waitFor(() => expect(api.getCurrentUser).toHaveBeenCalled());
+    await flush();
+
+    expect(service.state.status).toBe('ready');
+    expect(service.state.user?.username).toBe('Ana (salva)');
+  });
+
+  it('ignora a sessão salva de outra conta', async () => {
+    const gate = deferred();
+    const { service } = setup({
+      stored: 'pk_2_ABC123',
+      sessionCache: fakeSessionCache(CACHED),
+      gate: gate.promise,
+    });
+
+    const booting = service.boot();
+    await flush();
+    expect(service.state.status).toBe('booting');
+
+    gate.resolve();
+    await booting;
+    expect(service.state.status).toBe('ready');
+  });
+
+  it('sem sessão salva, guarda a sessão depois de validar', async () => {
+    const cache = fakeSessionCache(null);
+    const { service } = setup({ stored: 'pk_1_ABC123', sessionCache: cache });
+
+    await service.boot();
+
+    await vi.waitFor(() =>
+      expect(cache.save).toHaveBeenCalledWith(expect.objectContaining({ userId: 1 })),
+    );
+  });
+
+  it('o usuário traz o fuso e o primeiro dia da semana', async () => {
+    const { service } = setup({
+      stored: 'pk_1_ABC123',
+      user: { ...USER, timezone: 'America/Recife', weekStartDay: 1 },
+    });
+
+    await service.boot();
+
+    expect(service.state.user).toMatchObject({ timezone: 'America/Recife', weekStartDay: 1 });
+  });
+
+  it('sem fuso informado, usa o do sistema', async () => {
+    const { service } = setup({ stored: 'pk_1_ABC123' });
+
+    await service.boot();
+
+    expect(service.state.user?.timezone).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  });
+});
+
 describe('submitToken', () => {
+  it('guarda a sessão do token aceito', async () => {
+    const cache = fakeSessionCache(null);
+    const { service } = setup({ sessionCache: cache });
+
+    await service.submitToken('pk_1_ABC123');
+
+    await vi.waitFor(() => expect(cache.save).toHaveBeenCalled());
+  });
+
   it('normaliza o token colado antes de validar', async () => {
     const { service, secrets, tokensSeenByApi } = setup();
 
@@ -254,6 +485,16 @@ describe('sessão pronta', () => {
     expect(service.state.user).toBeNull();
   });
 
+  it('signOut apaga a sessão salva', async () => {
+    const cache = fakeSessionCache(null);
+    const context = setup({ stored: 'pk_1_ABC123', sessionCache: cache });
+    await context.service.boot();
+
+    await context.service.signOut();
+
+    expect(cache.clear).toHaveBeenCalled();
+  });
+
   it('handleUnauthorized trata como token recusado', async () => {
     const { service, secrets } = await readySession();
 
@@ -262,6 +503,15 @@ describe('sessão pronta', () => {
     expect(secrets.clearToken).toHaveBeenCalled();
     expect(service.state.status).toBe('needs-token');
     expect(service.state.notice).toBe('invalid-token');
+  });
+
+  it('handleUnauthorized fora de uma sessão pronta não faz nada', async () => {
+    const { service, secrets } = setup({ stored: 'pk_42_ABC123' });
+
+    await service.handleUnauthorized();
+
+    expect(secrets.clearToken).not.toHaveBeenCalled();
+    expect(service.state.status).toBe('booting');
   });
 
   it('selectWorkspace troca o workspace e lembra a escolha', async () => {

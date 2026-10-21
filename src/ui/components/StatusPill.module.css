@@ -1,0 +1,17 @@
+.pill {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  height: 20px;
+  padding: 2px 6px 2px 4px;
+  border-radius: 6px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}

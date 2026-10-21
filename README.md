@@ -7,7 +7,19 @@ Cliente leve para o ClickUp: interface familiar, uma fração da memória.
 
 ## Status
 
-Em desenvolvimento.
+Em desenvolvimento. A versão atual permite consultar tarefas atribuídas, agrupar por
+status, mostrar tarefas fechadas, expandir subtarefas e consultar hoje e atrasadas.
+A lista usa um snapshot local para reabrir e sincroniza as mudanças em segundo plano.
+O clique em uma tarefa ainda abre o ClickUp; edição, comentários e criação de tarefas
+ficam para as próximas etapas.
+
+A API pode devolver tarefas da Personal List junto das atribuídas, enquanto a tela
+correspondente do ClickUp as separa. Por enquanto, essas tarefas também aparecem no
+Tasklight: tarefas compartilhadas continuam visíveis mesmo quando seu espaço não está
+disponível na navegação.
+
+As medições disponíveis e as verificações pendentes estão em
+[Performance](docs/performance.md).
 
 ## Requisitos
 
@@ -55,3 +67,11 @@ tolerância de 1px e cores exatas.
 | `npm run format` | corrige formatação e organiza imports |
 | `npm run test` | testes (Vitest) |
 | `npm run check` | typecheck, lint e testes |
+
+## Créditos
+
+Os ícones dos tipos de tarefa usam [Font Awesome Free](https://fontawesome.com/),
+da Fonticons, Inc., sob a licença
+[Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/).
+Os caminhos SVG são utilizados sem alterações no desenho, com tamanho e cor definidos
+pela interface. As marcas representadas pertencem aos respectivos titulares.

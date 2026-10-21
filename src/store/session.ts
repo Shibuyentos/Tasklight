@@ -9,6 +9,10 @@ export interface SessionUser {
   initials: string;
   color: string;
   profilePicture: string | null;
+  /** Fuso do usuário no ClickUp; as datas sem hora são lidas nele. */
+  timezone: string;
+  /** Primeiro dia da semana (0 = domingo). */
+  weekStartDay: number;
 }
 
 export interface Workspace {

@@ -1,5 +1,5 @@
 {
-  "description": "Medidas da casca do ClickUp (tema escuro) em 1919x910, usadas para conferir o Tasklight com scripts/ui-metrics.js. Tamanhos com tolerância de 1px; cores exatas.",
+  "description": "Medidas da casca e da aba Tarefas do ClickUp (tema escuro) em 1919x910, usadas para conferir o Tasklight com scripts/ui-metrics.js. Tamanhos com tolerância de 1px; cores exatas. Na lista, a posição vertical depende de avisos no topo da página e não é conferida.",
   "viewport": { "width": 1919, "height": 910 },
   "selectors": {
     "tasklight": {
@@ -11,7 +11,16 @@
       "card": "[data-ui=\"card\"]",
       "sidebar": "[data-ui=\"sidebar\"]",
       "sidebar-header": "[data-ui=\"sidebar-header\"]",
-      "sidebar-row": "[data-ui=\"sidebar-row\"]"
+      "sidebar-row": "[data-ui=\"sidebar-row\"]",
+      "toolbar-status": "[data-ui=\"toolbar-status\"]",
+      "group-header": "[data-ui=\"group-header\"]",
+      "status-pill": "[data-ui=\"status-pill\"]",
+      "column-header": "[data-ui=\"column-header\"] > :first-child",
+      "task-row": "[data-ui=\"task-row\"]",
+      "task-name": "[data-ui=\"task-name\"]",
+      "priority-cell": "[data-ui=\"priority-cell\"]",
+      "due-cell": "[data-ui=\"due-date\"]",
+      "add-task": "[data-ui=\"add-task\"]"
     },
     "clickup": {
       "topbar": "cu-global-actions-bar",
@@ -22,7 +31,16 @@
       "card": ".cu-manager2__body-inner-wrapper",
       "sidebar": ".cu-nav-sidebar__container",
       "sidebar-header": "cu-sidebar-header",
-      "sidebar-row": "cu-sidebar-row-layout"
+      "sidebar-row": "cu-sidebar-row-layout",
+      "toolbar-status": "button[data-test=\"view-setting-toggle\"][aria-label=\"Status\"]",
+      "group-header": "cu-task-list-header",
+      "status-pill": "cu-status-group-header",
+      "column-header": ".cu-task-list-header__item_main",
+      "task-row": "cu-task-row .cu-task-row__main",
+      "task-name": ".cu-task-row-main__link-text-inner",
+      "priority-cell": "cu-task-row cu-priority-list-dropdown",
+      "due-cell": "cu-due-date-view",
+      "add-task": ".cu-task-list-footer"
     }
   },
   "expected": {
@@ -46,6 +64,30 @@
     "card": { "x": 64, "y": 40, "backgroundColor": "rgb(9, 9, 9)", "borderRadius": "8px" },
     "sidebar": { "x": 65, "y": 41, "width": 256, "backgroundColor": "rgb(25, 25, 25)" },
     "sidebar-header": { "height": 40, "backgroundColor": "rgb(25, 25, 25)" },
-    "sidebar-row": { "height": 28, "borderRadius": "7px", "fontSize": "14px" }
+    "sidebar-row": { "height": 28, "borderRadius": "7px", "fontSize": "14px" },
+    "toolbar-status": {
+      "x": 347,
+      "width": 67.3,
+      "height": 24,
+      "backgroundColor": "rgb(34, 27, 83)",
+      "color": "rgb(168, 159, 255)",
+      "borderRadius": "12px",
+      "fontSize": "12px",
+      "fontWeight": "500"
+    },
+    "group-header": { "x": 321, "width": 1581, "height": 72, "backgroundColor": "rgb(17, 17, 17)" },
+    "status-pill": { "x": 377, "height": 20, "borderRadius": "6px" },
+    "column-header": { "x": 345, "width": 1066, "height": 32 },
+    "task-row": { "x": 345, "height": 36 },
+    "task-name": {
+      "x": 396,
+      "fontSize": "14px",
+      "fontWeight": "500",
+      "lineHeight": "21px",
+      "color": "rgb(238, 238, 238)"
+    },
+    "priority-cell": { "x": 1411, "width": 160 },
+    "due-cell": { "x": 1583 },
+    "add-task": { "x": 321, "width": 1581, "height": 37 }
   }
 }

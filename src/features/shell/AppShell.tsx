@@ -2,6 +2,7 @@ import type { RouteSectionProps } from '@solidjs/router';
 import { onCleanup, Show } from 'solid-js';
 import { StorageNotice } from '../onboarding/StorageNotice';
 import { MainHeader } from './MainHeader';
+import { OfflineNotice } from './OfflineNotice';
 import { Rail } from './Rail';
 import { Sidebar } from './Sidebar';
 import styles from './shell.module.css';
@@ -33,6 +34,7 @@ export function AppShell(props: RouteSectionProps) {
           </Show>
           <main class={styles.main}>
             <StorageNotice />
+            <OfflineNotice />
             <MainHeader />
             <div class={styles.content}>{props.children}</div>
           </main>

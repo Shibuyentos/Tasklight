@@ -11,12 +11,19 @@ export interface HttpClient {
   get<T>(path: string, options?: RequestOptions): Promise<T>;
 }
 
+export interface RateLimitInfo {
+  remaining: number;
+  /** Instante (ms) em que a janela de limite do ClickUp reinicia. */
+  resetAt: number;
+}
+
 export interface HttpClientOptions {
   getToken: () => Promise<string | null>;
   fetch?: typeof fetch;
   baseUrl?: string;
   timeoutMs?: number;
   now?: () => number;
+  onRateLimitInfo?: (info: RateLimitInfo) => void;
 }
 
 const DEFAULT_BASE_URL = 'https://api.clickup.com/api/v2';
@@ -40,6 +47,14 @@ function retryAfterMs(headers: Headers, now: () => number): number | undefined {
   const retryAfter = Number(headers.get('Retry-After'));
   if (headers.has('Retry-After') && Number.isFinite(retryAfter)) return retryAfter * 1000;
   return undefined;
+}
+
+function rateLimitInfo(headers: Headers): RateLimitInfo | null {
+  if (!headers.has('X-RateLimit-Remaining') || !headers.has('X-RateLimit-Reset')) return null;
+  const remaining = Number(headers.get('X-RateLimit-Remaining'));
+  const reset = Number(headers.get('X-RateLimit-Reset'));
+  if (!Number.isFinite(remaining) || !Number.isFinite(reset)) return null;
+  return { remaining, resetAt: reset * 1000 };
 }
 
 function errorFromResponse(response: Response, now: () => number): ApiError {
@@ -66,7 +81,9 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
 
   return {
     async get<T>(path: string, requestOptions: RequestOptions = {}): Promise<T> {
+      const callerSignal = requestOptions.signal;
       const token = await options.getToken();
+      if (callerSignal?.aborted) throw callerSignal.reason;
       if (!token) throw new ApiError('unauthorized', 'Nenhum token do ClickUp configurado');
 
       const controller = new AbortController();
@@ -75,7 +92,6 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
         timedOut = true;
         controller.abort();
       }, timeoutMs);
-      const callerSignal = requestOptions.signal;
       const forwardAbort = () => controller.abort(callerSignal?.reason);
       callerSignal?.addEventListener('abort', forwardAbort, { once: true });
 
@@ -84,6 +100,8 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
           headers: { Authorization: token },
           signal: controller.signal,
         });
+        const info = rateLimitInfo(response.headers);
+        if (info) options.onRateLimitInfo?.(info);
         if (!response.ok) throw errorFromResponse(response, now);
         try {
           return (await response.json()) as T;
