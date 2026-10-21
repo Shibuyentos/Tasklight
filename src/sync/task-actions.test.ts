@@ -101,6 +101,17 @@ describe('task actions', () => {
       dateUpdated: 20,
     });
   });
+  it('shows the chosen status with its color and type while the write is pending', async () => {
+    const { api, store, actions } = setup();
+    const response = deferred<TaskDetail>();
+    api.updateTask.mockReturnValue(response.promise);
+    const chosen = { name: 'fazendo', color: '#5f55ee', type: 'custom' as const, orderindex: 1 };
+    const write = actions.update('a', { status: 'fazendo' }, { status: chosen });
+    expect(store.state.tasks.a?.status).toEqual(chosen);
+    expect(api.updateTask).toHaveBeenCalledWith('a', { status: 'fazendo' }, expect.anything());
+    response.resolve(detail('a', 'a', 20));
+    await write;
+  });
   it('offline sends nothing; uncertain POST is exposed without retry or modifying the draft', async () => {
     const offline = setup(false);
     const draft = { segments: [{ text: 'draft' }] };

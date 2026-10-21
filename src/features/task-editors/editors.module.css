@@ -1,0 +1,542 @@
+/* Menus de edição medidos no ClickUp (cu-dropdown__menu e cu3-combo-box) em 1919×910. */
+.menu {
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  max-height: min(420px, calc(100vh - 16px));
+  padding: 8px 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--bg-menu);
+  box-shadow: var(--elevation-menu);
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+  outline: none;
+}
+
+.statusMenu {
+  width: 247px;
+}
+
+.priorityMenu {
+  width: 230px;
+}
+
+.peopleMenu,
+.tagsMenu {
+  width: 280px;
+}
+
+/* Campo de pesquisa do topo dos menus (menu-search compact), 16px acima do primeiro título. */
+.search {
+  display: flex;
+  flex: none;
+  align-items: center;
+  height: 28px;
+  margin: 0 8px 16px;
+  padding: 5px 5px 5px 7px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-3-5);
+  background: var(--bg-strong);
+}
+
+.search:focus-within {
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 2px rgb(49, 49, 49);
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: 400 var(--font-size-sm) / 16px var(--font-family);
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: var(--text-placeholder);
+}
+
+.options {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(96, 96, 96) transparent;
+}
+
+.heading {
+  height: 28px;
+  padding: 6px 20px 6px 16px;
+  color: var(--text-tertiary);
+  font: 500 var(--font-size-xs) / 16px var(--font-family);
+}
+
+.divider {
+  height: 1px;
+  margin: 8px 0;
+  border: 0;
+  background: var(--border-low);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  margin: 2px 8px 0;
+  padding: 6px 8px;
+  border-radius: var(--radius-3-5);
+  color: var(--text-primary);
+  font: 400 var(--font-size-sm) / 16px var(--font-family);
+  cursor: pointer;
+  user-select: none;
+}
+
+.heading + .option,
+.options > [role="group"]:first-child > .option:first-child {
+  margin-top: 0;
+}
+
+.option[data-active] {
+  background: var(--bg-hover);
+}
+
+.option[aria-selected="true"] {
+  font-weight: 500;
+}
+
+.option[aria-disabled="true"] {
+  color: var(--text-disabled);
+  cursor: default;
+}
+
+.optionIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+}
+
+.optionLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.optionCheck {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.optionHint {
+  flex: none;
+  color: var(--text-placeholder);
+  font-size: var(--font-size-xs);
+}
+
+/* Status: ícone com 3px a mais de recuo e nome em maiúsculas, como no ClickUp. */
+.statusOption {
+  padding: 4px 8px;
+}
+
+.statusOption .optionLabel {
+  text-transform: uppercase;
+}
+
+.message {
+  margin: 0;
+  padding: 6px 16px;
+  color: var(--text-tertiary);
+  font: 400 var(--font-size-sm) / 16px var(--font-family);
+}
+
+/* Gatilhos dentro das linhas: a célula inteira é o botão. */
+.cellTrigger {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cellTrigger[data-expanded],
+.cellTrigger:focus-visible {
+  border-color: var(--text-primary);
+  outline: none;
+}
+
+.cellTrigger:disabled,
+.cellTrigger[aria-disabled="true"] {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.iconTrigger {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.iconTrigger:focus-visible {
+  outline: 1px solid var(--text-primary);
+  outline-offset: 2px;
+}
+
+.iconTrigger:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* Seletor de datas (cu-recurring-date-menu): campos no topo, atalhos à esquerda e calendário. */
+.datesMenu {
+  width: 479px;
+  padding: 0;
+  background: var(--bg-main);
+}
+
+.datesFields {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+}
+
+.dateField {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  height: 32px;
+  border-radius: var(--radius-3);
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.dateField[data-active] {
+  box-shadow:
+    0 0 0 1px var(--text-primary),
+    0 0 0 3px rgb(49, 49, 49);
+  color: var(--text-primary);
+}
+
+.dateFieldButton {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 100%;
+  padding: 4px 8px 4px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: 400 var(--font-size-sm) / 16px var(--font-family);
+  text-align: left;
+  cursor: pointer;
+}
+
+.dateFieldButton > svg {
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.dateField[data-active] .dateFieldButton > svg {
+  color: var(--text-primary);
+}
+
+.dateFieldPlaceholder {
+  color: var(--text-placeholder);
+}
+
+.dateFieldButton:focus-visible,
+.dateFieldClear:focus-visible,
+.quickDate:focus-visible,
+.calendarToday:focus-visible,
+.calendarArrow:focus-visible,
+.calendarDay:focus-visible {
+  outline: 1px solid var(--text-primary);
+  outline-offset: -1px;
+}
+
+.dateFieldClear {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-2-5);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.dateFieldClear:hover {
+  background: var(--bg-hover);
+}
+
+.datesBody {
+  display: flex;
+}
+
+.quickDates {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 231px;
+  padding: 12px 8px 8px;
+  border-bottom-left-radius: 12px;
+  background: var(--bg-menu);
+}
+
+.quickDate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--radius-3);
+  background: transparent;
+  color: var(--text-primary);
+  font: 400 var(--font-size-sm) / 16px var(--font-family);
+  cursor: pointer;
+}
+
+.quickDate:hover {
+  background: var(--bg-hover);
+}
+
+.quickDateHint {
+  color: var(--text-placeholder);
+  font-size: var(--font-size-xs);
+}
+
+.calendar {
+  flex: 1;
+  padding: 12px;
+}
+
+.calendarNav {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  padding: 4px;
+}
+
+.calendarTitle {
+  flex: 1;
+  margin: 0;
+  padding: 0 6px;
+  color: var(--text-primary);
+  font: 500 var(--font-size-sm) / 16px var(--font-family);
+}
+
+.calendarToday,
+.calendarArrow {
+  display: grid;
+  place-items: center;
+  height: 24px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-3);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.calendarToday {
+  padding: 0 7px;
+  font: 500 var(--font-size-xs) / 16px var(--font-family);
+}
+
+.calendarArrow {
+  width: 24px;
+  padding: 0;
+}
+
+.calendarToday:hover,
+.calendarArrow:hover {
+  background: var(--bg-hover);
+}
+
+.calendarGrid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.calendarGrid th {
+  height: 32px;
+  padding: 0;
+  color: var(--text-disabled);
+  font: 400 var(--font-size-sm) / 16px var(--font-family);
+  text-align: center;
+}
+
+.calendarGrid td {
+  height: 32px;
+  padding: 0;
+  text-align: center;
+}
+
+.calendarGrid td[data-in-range] {
+  background: var(--bg-elevated);
+}
+
+.calendarDay {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-3-5);
+  background: transparent;
+  color: var(--text-primary);
+  font: 400 var(--font-size-sm) / 16px var(--font-family);
+  cursor: pointer;
+}
+
+.calendarDay[data-muted] {
+  color: var(--text-disabled);
+}
+
+.calendarDay:hover {
+  background: rgba(255, 255, 255, 0.078);
+}
+
+.calendarDay[aria-current="date"] {
+  border-radius: var(--radius-round);
+  background: rgb(210, 30, 36);
+  color: rgb(255, 255, 255);
+}
+
+.calendarDay[aria-pressed="true"] {
+  background: var(--text-primary);
+  color: rgba(0, 0, 0, 0.875);
+}
+
+/* Aviso de edição não salva, no rodapé da área de conteúdo. */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 8px 8px 8px 16px;
+  border-radius: var(--radius-4);
+  background: var(--bg-elevated);
+  box-shadow: var(--elevation-menu);
+  color: var(--text-primary);
+  font: 400 var(--font-size-sm) / 20px var(--font-family);
+  transform: translateX(-50%);
+}
+
+.toastMessage {
+  flex: 1;
+  min-width: 0;
+}
+
+.toastAction {
+  flex: none;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border-high);
+  border-radius: var(--radius-3);
+  background: transparent;
+  color: var(--text-primary);
+  font: 500 var(--font-size-sm) / 16px var(--font-family);
+  cursor: pointer;
+}
+
+.toastClose {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-3);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.toastAction:hover,
+.toastClose:hover {
+  background: var(--bg-hover);
+}
+
+/* Pessoas: linhas de 32px com avatar de 24px, como na lista de responsáveis do ClickUp. */
+.personOption {
+  height: 32px;
+  padding: 2px 8px;
+}
+
+.personOption .optionIcon {
+  width: 24px;
+  height: 24px;
+}
+
+/* Abas "Status | Tipo de tarefa" (cu3-switcher), 8px acima da pesquisa. */
+.switcher {
+  display: flex;
+  flex: none;
+  height: 32px;
+  margin: 0 8px 8px;
+  padding: 2px;
+  border-radius: var(--radius-3-5);
+  background: var(--bg-hover);
+}
+
+.switcherTab {
+  flex: 1;
+  height: 28px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--radius-2-5);
+  background: transparent;
+  color: var(--text-placeholder);
+  font: 500 var(--font-size-sm) / 16px var(--font-family);
+  cursor: pointer;
+}
+
+.switcherTab[aria-selected="true"] {
+  background: var(--bg-main);
+  color: var(--text-secondary);
+}
+
+.switcherTab:focus-visible {
+  outline: 1px solid var(--text-primary);
+  outline-offset: -1px;
+}
+
+.optionMuted {
+  margin-left: 4px;
+  color: var(--text-placeholder);
+  font-size: var(--font-size-xs);
+}

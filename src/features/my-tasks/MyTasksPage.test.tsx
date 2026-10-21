@@ -103,6 +103,16 @@ describe('MyTasksPage', () => {
     ]);
   });
 
+  it('traduz os status padrão do ClickUp, como a interface em português', () => {
+    renderPage([
+      task({ status: { name: 'to do', color: '#87909e', type: 'open', orderindex: 0 } }),
+      task({ status: { name: 'in progress', color: '#5f55ee', type: 'custom', orderindex: 1 } }),
+    ]);
+
+    expect(pills()).toEqual(['pendente', 'em progresso']);
+    expect(screen.getByRole('button', { name: 'Recolher pendente' })).toBeInTheDocument();
+  });
+
   it('mostra "Hoje" e a data atrasada em vermelho, mas não a de tarefa concluída', () => {
     renderPage([
       task({ name: 'Vence hoje', dueDate: day('2026-10-21') }),

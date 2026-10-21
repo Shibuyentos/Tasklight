@@ -7,10 +7,10 @@ export const PRIORITY_LABEL: Readonly<Record<Priority, string>> = {
   low: 'Baixa',
 };
 
-/** Cores das bandeiras medidas no tema escuro do ClickUp (a de "Baixa" ainda não foi observada). */
+/** Cores das bandeiras medidas no tema escuro do ClickUp (lista e menu de prioridade). */
 export const PRIORITY_COLOR: Readonly<Record<Priority, string>> = {
   urgent: 'rgb(255, 133, 137)',
   high: 'rgb(255, 197, 61)',
   normal: 'rgb(62, 99, 221)',
-  low: 'rgb(123, 123, 123)',
+  low: 'rgb(96, 96, 96)',
 };

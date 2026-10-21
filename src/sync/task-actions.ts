@@ -30,7 +30,12 @@ export interface TaskActionError {
 }
 export type ActionResult<T> = { ok: true; value: T } | { ok: false; error: TaskActionError };
 export interface TaskActions {
-  update(taskId: string, changes: TaskChanges): Promise<ActionResult<TaskDetail>>;
+  /** `display` ajusta o que a tela mostra enquanto espera (ex.: cor e tipo do status escolhido). */
+  update(
+    taskId: string,
+    changes: TaskChanges,
+    display?: Partial<Task>,
+  ): Promise<ActionResult<TaskDetail>>;
   setField(
     taskId: string,
     field: CustomField,
@@ -210,14 +215,14 @@ export function createTaskActionsService(deps: TaskActionsDeps): TaskActions {
     return { ...field, value: normalized.value, displayValue: normalized.displayValue };
   }
   return {
-    update(id, changes) {
+    update(id, changes, display) {
       const previous = store.confirmedTask(id);
       const keys = Object.keys(changes).filter(
         (key) => changes[key as keyof TaskChanges] !== undefined,
       );
       if (!previous)
         return Promise.resolve(fail('failed', id, keys, new Error('Tarefa indisponível')));
-      const summary = summaryPatch(changes, previous);
+      const summary = { ...summaryPatch(changes, previous), ...display };
       return run(id, keys, false, () => api.updateTask(id, changes, previous), {
         summary,
         detail: (value) => detailPatch(value, changes),

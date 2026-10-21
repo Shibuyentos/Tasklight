@@ -1,6 +1,22 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { type DateContext, dueTone, formatDueDate, isDateOnly, isDueByToday } from './dates';
+import {
+  calendarWeeks,
+  type DateContext,
+  dateOnlyTime,
+  dayLabel,
+  dueTone,
+  formatDueDate,
+  formatNumericDate,
+  formatTime,
+  isDateOnly,
+  isDueByToday,
+  localDate,
+  monthTitle,
+  quickDates,
+  weekdayLabels,
+  zonedTime,
+} from './dates';
 
 // Horário de Brasília (UTC-3, sem horário de verão).
 const local = (iso: string) => new Date(`${iso}-03:00`).getTime();
@@ -86,5 +102,104 @@ describe('isDateOnly', () => {
     // Nova York: o horário de verão termina em 01/11/2026 e começa em 08/03/2026.
     expect(isDateOnly(Date.parse('2026-11-01T09:00:00Z'), 'America/New_York')).toBe(true);
     expect(isDateOnly(Date.parse('2026-03-08T08:00:00Z'), 'America/New_York')).toBe(true);
+  });
+});
+
+describe('zonedTime e dateOnlyTime', () => {
+  it('data sem hora fica às 04:00 no fuso do usuário, como o ClickUp grava', () => {
+    expect(dateOnlyTime({ year: 2026, month: 11, day: 3 }, 'America/Sao_Paulo')).toBe(
+      Date.parse('2026-11-03T07:00:00Z'),
+    );
+  });
+
+  it('acerta o horário nos dias de troca de horário de verão', () => {
+    const tz = 'America/New_York';
+    // O horário de verão termina às 02:00 de 01/11: às 04:00 o fuso já é UTC-5.
+    expect(dateOnlyTime({ year: 2026, month: 11, day: 1 }, tz)).toBe(
+      Date.parse('2026-11-01T09:00:00Z'),
+    );
+    expect(zonedTime({ year: 2026, month: 3, day: 8 }, 15, 30, tz)).toBe(
+      Date.parse('2026-03-08T19:30:00Z'),
+    );
+  });
+
+  it('localDate devolve o dia de calendário no fuso', () => {
+    expect(localDate(Date.parse('2026-10-22T02:30:00Z'), 'America/Sao_Paulo')).toEqual({
+      year: 2026,
+      month: 10,
+      day: 21,
+    });
+  });
+});
+
+describe('quickDates', () => {
+  it('reproduz os atalhos do ClickUp numa quarta-feira à noite', () => {
+    const evening = { ...ctx, now: local('2026-10-21T18:59:00') };
+    const options = quickDates(evening).map((option) => ({
+      key: option.key,
+      hint: option.hint,
+      time: option.time,
+      at: new Date(option.value).toISOString(),
+    }));
+
+    expect(options).toEqual([
+      { key: 'today', hint: 'qua', time: false, at: '2026-10-21T07:00:00.000Z' },
+      { key: 'later', hint: '8:59 pm', time: true, at: '2026-10-21T23:59:00.000Z' },
+      { key: 'tomorrow', hint: 'qui', time: false, at: '2026-10-22T07:00:00.000Z' },
+      { key: 'thisWeekend', hint: 'sáb', time: false, at: '2026-10-24T07:00:00.000Z' },
+      { key: 'nextWeek', hint: 'seg', time: false, at: '2026-10-26T07:00:00.000Z' },
+      { key: 'nextWeekend', hint: '31 out', time: false, at: '2026-10-31T07:00:00.000Z' },
+      { key: 'twoWeeks', hint: '4 nov', time: false, at: '2026-11-04T07:00:00.000Z' },
+      { key: 'fourWeeks', hint: '18 nov', time: false, at: '2026-11-18T07:00:00.000Z' },
+    ]);
+  });
+
+  it('no sábado, "este final de semana" é hoje e "semana que vem" é a segunda seguinte', () => {
+    const saturday = { ...ctx, now: local('2026-10-24T09:00:00') };
+    const byKey = Object.fromEntries(quickDates(saturday).map((option) => [option.key, option]));
+
+    expect(localDate(byKey.thisWeekend?.value ?? 0, ctx.timeZone).day).toBe(24);
+    expect(localDate(byKey.nextWeek?.value ?? 0, ctx.timeZone).day).toBe(26);
+  });
+});
+
+describe('calendário', () => {
+  it('outubro de 2026 começando no domingo ocupa seis semanas, de 27/9 a 7/11', () => {
+    const weeks = calendarWeeks(2026, 10, 0);
+
+    expect(weeks).toHaveLength(6);
+    expect(weeks[0]?.[0]).toEqual({ year: 2026, month: 9, day: 27 });
+    expect(weeks[5]?.[6]).toEqual({ year: 2026, month: 11, day: 7 });
+  });
+
+  it('a semana pode começar na segunda-feira', () => {
+    expect(calendarWeeks(2026, 10, 1)[0]?.[0]).toEqual({ year: 2026, month: 9, day: 28 });
+    expect(weekdayLabels(1)).toEqual(['2ª', '3ª', '4ª', '5ª', '6ª', 'sá', 'do']);
+  });
+
+  it('rótulos e título seguem o ClickUp', () => {
+    expect(weekdayLabels(0)).toEqual(['do', '2ª', '3ª', '4ª', '5ª', '6ª', 'sá']);
+    expect(monthTitle(2026, 10)).toBe('outubro 2026');
+  });
+});
+
+describe('formatTime', () => {
+  it('usa 12 horas com am/pm minúsculo', () => {
+    expect(formatTime(local('2026-10-21T20:59:00'), ctx.timeZone)).toBe('8:59 pm');
+    expect(formatTime(local('2026-10-21T00:05:00'), ctx.timeZone)).toBe('12:05 am');
+    expect(formatTime(local('2026-07-08T15:30:00'), ctx.timeZone, { compact: true })).toBe(
+      '3:30pm',
+    );
+  });
+});
+
+describe('rótulos de data', () => {
+  it('dayLabel descreve o dia por extenso', () => {
+    expect(dayLabel({ year: 2026, month: 11, day: 5 })).toBe('5 de novembro de 2026');
+  });
+
+  it('formatNumericDate mostra a hora só quando há hora', () => {
+    expect(formatNumericDate(dateOnly('2026-11-03'), ctx.timeZone)).toBe('11/3/26');
+    expect(formatNumericDate(local('2026-07-08T15:30:00'), ctx.timeZone)).toBe('7/8/26, 3:30pm');
   });
 });

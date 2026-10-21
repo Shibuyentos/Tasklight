@@ -1,11 +1,16 @@
-import { Show } from 'solid-js';
+import { createMemo, type JSX, Show } from 'solid-js';
 import type { WorkspaceServices } from '../../app/ServicesContext';
 import type { Task } from '../../domain/task';
+import type { TaskChanges } from '../../domain/task-detail';
+import { taskTypeChoices } from '../../domain/task-types';
 import { t } from '../../i18n';
 import { openSubtaskCount } from '../../store/tasks';
 import { Caret } from '../../ui/components/Caret';
 import { StatusIcon } from '../../ui/components/StatusIcon';
 import { hasTaskTypeIcon, TaskTypeIcon } from '../../ui/components/TaskTypeIcon';
+import type { EditFeedback } from '../task-editors/edit-feedback';
+import editorStyles from '../task-editors/editors.module.css';
+import { StatusPicker } from '../task-editors/StatusPicker';
 import { DueDateCell } from './DueDateCell';
 import { AttachmentIcon, DescriptionIcon, SubtasksIcon } from './icons';
 import styles from './my-tasks.module.css';
@@ -35,12 +40,30 @@ function RowTypeIcon(props: { task: Task; workspace: WorkspaceServices }) {
   );
 }
 
+/** Edição pela linha, quando o workspace oferece os serviços de detalhe e de ações. */
+function rowEditing(workspace: WorkspaceServices, feedback: EditFeedback | undefined) {
+  const { actions, details } = workspace;
+  if (!actions || !details || !feedback) return null;
+  const offline = () => workspace.sync.status() === 'offline';
+  return {
+    details,
+    disabled: (taskId: string, key: string) => offline() || actions.pending(taskId, key),
+    title: () => (offline() ? t('editors.offline') : undefined),
+    update: (taskId: string, changes: TaskChanges, display?: Partial<Task>) =>
+      void feedback.run(() =>
+        display ? actions.update(taskId, changes, display) : actions.update(taskId, changes),
+      ),
+  };
+}
+
 export function TaskRow(props: {
   item: RowItem;
   workspace: WorkspaceServices;
+  feedback?: EditFeedback;
   onToggle: () => void;
 }) {
   const task = () => props.item.task;
+  const editing = createMemo(() => rowEditing(props.workspace, props.feedback));
   const subtasks = () =>
     props.item.depth === 0 ? openSubtaskCount(props.workspace.store.state, task().id) : null;
   const attachments = () => props.workspace.store.state.rowDetails[task().id]?.attachments ?? 0;
@@ -48,6 +71,8 @@ export function TaskRow(props: {
     t(props.item.expanded ? 'myTasks.row.hideSubtasks' : 'myTasks.row.showSubtasks', {
       name: task().name,
     });
+
+  const typeIcon = (): JSX.Element => <RowTypeIcon task={task()} workspace={props.workspace} />;
 
   return (
     <div
@@ -67,7 +92,29 @@ export function TaskRow(props: {
             <Caret open={props.item.expanded} />
           </button>
         </Show>
-        <RowTypeIcon task={task()} workspace={props.workspace} />
+        <Show when={editing()} fallback={typeIcon()}>
+          {(edit) => (
+            <StatusPicker
+              current={task().status}
+              loadStatuses={async () =>
+                (await edit().details.listMetadata(task().listId))?.statuses ?? null
+              }
+              onChange={(status) => edit().update(task().id, { status: status.name }, { status })}
+              types={{
+                current: task().customItemId,
+                choices: taskTypeChoices(Object.values(props.workspace.store.state.taskTypes)),
+                onChange: (customItemId) =>
+                  edit().update(task().id, { customItemId }, { customItemId }),
+              }}
+              disabled={edit().disabled(task().id, 'status')}
+              triggerLabel={t('editors.trigger.status', { name: task().name })}
+              triggerTitle={edit().title()}
+              triggerClass={editorStyles.iconTrigger}
+            >
+              {typeIcon()}
+            </StatusPicker>
+          )}
+        </Show>
         <a
           class={styles.name}
           href={task().url}
@@ -106,11 +153,37 @@ export function TaskRow(props: {
           </Show>
         </span>
       </div>
-      <PriorityCell priority={task().priority} />
+      <PriorityCell
+        priority={task().priority}
+        editor={
+          editing()
+            ? {
+                label: t('editors.trigger.priority', { name: task().name }),
+                disabled: editing()?.disabled(task().id, 'priority') ?? true,
+                title: editing()?.title(),
+                onChange: (priority) => editing()?.update(task().id, { priority }),
+              }
+            : undefined
+        }
+      />
       <DueDateCell
         dueDate={task().dueDate}
+        startDate={task().startDate}
         statusType={task().status.type}
         ctx={props.workspace.dateContext()}
+        editor={
+          editing()
+            ? {
+                label: t('editors.trigger.dates', { name: task().name }),
+                disabled:
+                  (editing()?.disabled(task().id, 'dueDate') ||
+                    editing()?.disabled(task().id, 'startDate')) ??
+                  true,
+                title: editing()?.title(),
+                onChange: (change) => editing()?.update(task().id, change),
+              }
+            : undefined
+        }
       />
       <div class={styles.trailingCell} />
     </div>

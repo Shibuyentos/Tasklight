@@ -4,6 +4,8 @@ import { isDueByToday } from '../../domain/dates';
 import { groupByStatus } from '../../domain/grouping';
 import { t } from '../../i18n';
 import { assignedRoots, openSubtaskCount, openSubtasks } from '../../store/tasks';
+import { EditToast } from '../task-editors/EditToast';
+import { createEditFeedback } from '../task-editors/edit-feedback';
 import styles from './my-tasks.module.css';
 import { createMyTasksPrefs, type MyTasksPrefs } from './prefs';
 import { TaskList } from './TaskList';
@@ -37,6 +39,7 @@ function MyTasksContent(props: {
 }) {
   const { store, sync, userId } = props.workspace;
   const [expanded, setExpanded] = createSignal<ReadonlySet<string>>(new Set());
+  const feedback = createEditFeedback();
 
   const roots = createMemo(() => {
     const tasks = assignedRoots(store.state, userId);
@@ -63,25 +66,29 @@ function MyTasksContent(props: {
   }
 
   return (
-    <Switch
-      fallback={
-        <TaskList
-          items={items()}
-          workspace={props.workspace}
-          onToggleGroup={(key) => props.prefs.toggleGroup(key)}
-          onToggleTask={toggleTask}
-        />
-      }
-    >
-      <Match when={groups().length === 0 && sync.status() === 'loading'}>
-        <SkeletonRows />
-      </Match>
-      <Match when={groups().length === 0}>
-        <p class={styles.empty}>
-          {props.filter === 'today' ? t('myTasks.emptyToday') : t('myTasks.empty')}
-        </p>
-      </Match>
-    </Switch>
+    <>
+      <Switch
+        fallback={
+          <TaskList
+            items={items()}
+            workspace={props.workspace}
+            feedback={feedback}
+            onToggleGroup={(key) => props.prefs.toggleGroup(key)}
+            onToggleTask={toggleTask}
+          />
+        }
+      >
+        <Match when={groups().length === 0 && sync.status() === 'loading'}>
+          <SkeletonRows />
+        </Match>
+        <Match when={groups().length === 0}>
+          <p class={styles.empty}>
+            {props.filter === 'today' ? t('myTasks.emptyToday') : t('myTasks.empty')}
+          </p>
+        </Match>
+      </Switch>
+      <EditToast feedback={feedback} />
+    </>
   );
 }
 

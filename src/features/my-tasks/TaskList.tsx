@@ -3,6 +3,7 @@ import { Plus } from 'lucide-solid';
 import { createEffect, For, Match, onCleanup, Show, Switch } from 'solid-js';
 import type { WorkspaceServices } from '../../app/ServicesContext';
 import { t } from '../../i18n';
+import type { EditFeedback } from '../task-editors/edit-feedback';
 import { GroupHeader } from './GroupHeader';
 import styles from './my-tasks.module.css';
 import { TaskRow } from './TaskRow';
@@ -19,6 +20,8 @@ export interface TaskListProps {
   workspace: WorkspaceServices;
   onToggleGroup: (key: string) => void;
   onToggleTask: (taskId: string) => void;
+  /** Sem ela, as linhas ficam só de leitura. */
+  feedback?: EditFeedback;
 }
 
 function asGroup(item: ListItem | undefined): GroupItem | undefined {
@@ -126,6 +129,7 @@ export function TaskList(props: TaskListProps) {
                         <TaskRow
                           item={row()}
                           workspace={props.workspace}
+                          feedback={props.feedback}
                           onToggle={() => props.onToggleTask(row().task.id)}
                         />
                       )}

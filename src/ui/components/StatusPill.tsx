@@ -1,4 +1,5 @@
 import { readableTextColor } from '../../domain/color';
+import { statusLabel } from '../../domain/status';
 import type { TaskStatus } from '../../domain/task';
 import { StatusIcon } from './StatusIcon';
 import styles from './StatusPill.module.css';
@@ -19,7 +20,7 @@ export function StatusPill(props: { status: TaskStatus }) {
       style={{ 'background-color': props.status.color, color: textColor() }}
     >
       <StatusIcon type={props.status.type} cutout={props.status.color} />
-      <span class={styles.label}>{props.status.name}</span>
+      <span class={styles.label}>{statusLabel(props.status.name)}</span>
     </span>
   );
 }

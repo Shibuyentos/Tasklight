@@ -1,5 +1,6 @@
 import { ArrowDown } from 'lucide-solid';
 import { Show } from 'solid-js';
+import { statusLabel } from '../../domain/status';
 import { t } from '../../i18n';
 import { Caret } from '../../ui/components/Caret';
 import { StatusPill } from '../../ui/components/StatusPill';
@@ -10,7 +11,7 @@ import type { GroupItem } from './view-model';
 export function GroupHeader(props: { item: GroupItem; onToggle: () => void }) {
   const label = () =>
     t(props.item.collapsed ? 'myTasks.group.expand' : 'myTasks.group.collapse', {
-      name: props.item.status.name,
+      name: statusLabel(props.item.status.name),
     });
 
   return (
