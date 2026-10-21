@@ -98,13 +98,20 @@ export function createTaskSync(deps: TaskSyncDeps): TaskSync {
 
   /** As raízes informadas e todos os descendentes guardados delas. */
   function withDescendants(roots: Set<string>): string[] {
-    const removed = new Set(roots);
+    const removed = new Set(
+      [...roots].filter((id) => (store.state.retainedUntil?.[id] ?? 0) <= now()),
+    );
     const tasks = Object.values(store.state.tasks);
     let grew = true;
     while (grew) {
       grew = false;
       for (const task of tasks) {
-        if (task.parentId !== null && removed.has(task.parentId) && !removed.has(task.id)) {
+        if (
+          task.parentId !== null &&
+          removed.has(task.parentId) &&
+          !removed.has(task.id) &&
+          (store.state.retainedUntil?.[task.id] ?? 0) <= now()
+        ) {
           removed.add(task.id);
           grew = true;
         }
@@ -150,9 +157,15 @@ export function createTaskSync(deps: TaskSyncDeps): TaskSync {
         changed();
       });
       if (!alive(gen)) return;
+      store.pruneRetention(now());
       const fresh = new Set(roots.map((task) => task.id));
       const stale = Object.values(store.state.tasks)
-        .filter((task) => task.parentId === null && !fresh.has(task.id))
+        .filter(
+          (task) =>
+            !fresh.has(task.id) &&
+            (store.state.retainedUntil?.[task.id] ?? 0) <= now() &&
+            (task.parentId === null || !store.state.tasks[task.parentId]),
+        )
         .map((task) => task.id);
       const seen = newest(roots, store.state.meta.cursor ?? 0);
       // Depois de muito tempo fora, o cursor recomeça perto de agora em vez de percorrer o backlog.
@@ -160,6 +173,7 @@ export function createTaskSync(deps: TaskSyncDeps): TaskSync {
       batch(() => {
         store.upsertTasks(roots);
         store.removeTasks(withDescendants(new Set(stale)));
+        store.reconcileAssignedRoots([...fresh]);
         store.setMeta({ lastFullSync: now(), cursor });
       });
       setStatus('idle');
@@ -240,7 +254,12 @@ export function createTaskSync(deps: TaskSyncDeps): TaskSync {
         // O que não veio deixou de estar aberto (fechada, excluída ou movida).
         const open = new Set(subtasks.value.map((task) => task.id));
         const gone = Object.values(store.state.tasks)
-          .filter((task) => task.parentId === taskId && !open.has(task.id))
+          .filter(
+            (task) =>
+              task.parentId === taskId &&
+              !open.has(task.id) &&
+              (store.state.retainedUntil?.[task.id] ?? 0) <= now(),
+          )
           .map((task) => task.id);
         if (gone.length > 0) store.removeTasks(gone);
         store.upsertTasks(subtasks.value);

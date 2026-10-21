@@ -619,3 +619,35 @@ describe('dentro de um efeito', () => {
     dispose();
   });
 });
+
+it('reconciliation retains recent unassigned roots and independently opened descendants until expiry', async () => {
+  const root = task({ id: 'retained-root', assigneeIds: [OTHER] });
+  const child = task({ id: 'retained-child', parentId: 'removed', assigneeIds: [OTHER] });
+  const store = usedStore([root, child, task({ id: 'removed', assigneeIds: [OTHER] })]);
+  store.retainTask(root.id, NOW + 1000);
+  store.retainTask(child.id, NOW + 1000);
+  const sync = syncFor(store, fakeApi());
+  await sync.refresh();
+  expect(Object.keys(store.state.tasks).sort()).toEqual(['retained-child', 'retained-root']);
+  expect(assignedRoots(store.state, ME)).toEqual([]);
+  vi.setSystemTime(NOW + 2000);
+  await sync.refresh();
+  expect(Object.keys(store.state.tasks)).toEqual([]);
+  expect(store.state.retainedUntil).toEqual({});
+});
+
+it('an omitted retained assigned task leaves the assigned view without inventing assignee changes', async () => {
+  const root = task({ id: 'recent-assigned', assigneeIds: [ME], dateUpdated: NOW - 100 });
+  const store = usedStore([root]);
+  store.retainTask(root.id, NOW + 10000);
+  const api = fakeApi();
+  const sync = syncFor(store, api);
+  await sync.refresh();
+  expect(store.state.tasks[root.id]?.assigneeIds).toEqual([ME]);
+  expect(assignedRoots(store.state, ME)).toEqual([]);
+  store.upsertTasks([root]);
+  expect(assignedRoots(store.state, ME)).toEqual([]);
+  api.fetchUpdatedSince.mockResolvedValue([{ ...root, dateUpdated: NOW + 1 }]);
+  await sync.pollOnce();
+  expect(assignedRoots(store.state, ME).map((task) => task.id)).toEqual([root.id]);
+});

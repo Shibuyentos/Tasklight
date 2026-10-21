@@ -105,3 +105,32 @@ describe('detalhes por recurso', () => {
     ]);
   });
 });
+
+it.each(['field', 'member'])(
+  'keeps statuses when optional %s metadata returns unauthorized',
+  async (missing) => {
+    const requester: Requester = {
+      get: async <T>(path: string) => {
+        if (path.endsWith(`/${missing}`)) throw new Error('401');
+        if (path.endsWith('/field')) return { fields: [{ id: 'f', type: 'number' }] } as T;
+        if (path.endsWith('/member')) return { members: [{ id: 1, username: 'One' }] } as T;
+        return { id: 'l', name: 'List', statuses: [{ status: 'Open', type: 'open' }] } as T;
+      },
+    };
+    const result = await createTaskDetailApi(requester, 'w').getList('l');
+    expect(result.statuses[0]?.name).toBe('Open');
+    expect(result.unavailable).toEqual([missing === 'field' ? 'customFields' : 'members']);
+    expect(missing === 'field' ? result.members[0]?.id : result.customFields[0]?.id).toBe(
+      missing === 'field' ? 1 : 'f',
+    );
+  },
+);
+it('rejects inaccessible primary list instead of inventing statuses', async () => {
+  const requester: Requester = {
+    get: async <T>(path: string) => {
+      if (path === '/list/l') throw new Error('primary denied');
+      return {} as T;
+    },
+  };
+  await expect(createTaskDetailApi(requester, 'w').getList('l')).rejects.toThrow('primary denied');
+});

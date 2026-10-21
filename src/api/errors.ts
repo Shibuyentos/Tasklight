@@ -23,3 +23,13 @@ export class ApiError extends Error {
     this.retryAfterMs = init.retryAfterMs;
   }
 }
+
+/** O POST foi aceito, mas a tarefa criada ainda não foi confirmada por uma leitura. */
+export class TaskCreationConfirmationError extends Error {
+  readonly taskId: string | null;
+  constructor(taskId: string | null, cause?: unknown) {
+    super('A criação foi aceita, mas a confirmação está indisponível', { cause });
+    this.name = 'TaskCreationConfirmationError';
+    this.taskId = taskId;
+  }
+}

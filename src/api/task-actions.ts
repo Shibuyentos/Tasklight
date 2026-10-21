@@ -16,6 +16,7 @@ import {
   type TaskDetail,
   text,
 } from '../domain/task-detail';
+import { TaskCreationConfirmationError } from './errors';
 import type { HttpMethod } from './http';
 import type { Requester } from './scheduler';
 
@@ -112,8 +113,12 @@ export function createTaskActions(
       const result = await write('POST', `/list/${encodeURIComponent(input.listId)}/task`, body);
       if (isCompleteTask(result)) return normalizeDetail(result);
       const id = text(object(result).id);
-      if (!id) throw new Error('Resposta de criação sem identificador de tarefa');
-      return getTask(id);
+      if (!id) throw new TaskCreationConfirmationError(null);
+      try {
+        return await getTask(id);
+      } catch (cause) {
+        throw new TaskCreationConfirmationError(id, cause);
+      }
     },
   };
 }

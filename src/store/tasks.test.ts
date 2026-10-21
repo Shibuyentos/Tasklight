@@ -200,3 +200,44 @@ describe('openSubtaskCount', () => {
     expect(openSubtaskCount(store.state, parent.id)).toBe(2);
   });
 });
+
+it('overlay is immediate, rollback preserves newer delta and snapshots never persist speculation', () => {
+  const store = createTasksStore();
+  const original = task({ id: 'overlay', name: 'server', dateUpdated: 10 });
+  store.upsertTasks([original]);
+  store.beginOptimistic('op', original.id, { name: 'draft' });
+  expect(store.state.tasks.overlay?.name).toBe('draft');
+  expect(store.state.tasks.overlay?.dateUpdated).toBe(10);
+  expect(store.snapshot().tasks.overlay?.name).toBe('server');
+  store.upsertTasks([{ ...original, name: 'delta', dateUpdated: 20 }]);
+  store.endOptimistic('op');
+  expect(store.state.tasks.overlay?.name).toBe('delta');
+});
+
+it('retention keeps the longest deadline, persists in the snapshot and expires by time', () => {
+  const store = createTasksStore();
+  const original = task({ id: 'kept', dateUpdated: 10 });
+  store.upsertTasks([original]);
+  store.retainTask(original.id, 500);
+  store.retainTask(original.id, 300);
+  expect(store.snapshot().retainedUntil?.kept).toBe(500);
+  store.pruneRetention(499);
+  expect(store.state.retainedUntil?.kept).toBe(500);
+  store.pruneRetention(500);
+  expect(store.state.retainedUntil).toEqual({});
+});
+
+it('nested optimistic status and assignees never mutate confirmed snapshots', () => {
+  const store = createTasksStore();
+  const original = task({ id: 'nested', assigneeIds: [1], dateUpdated: 10 });
+  store.upsertTasks([original]);
+  store.beginOptimistic('nested-op', 'nested', {
+    assigneeIds: [2],
+    status: { ...original.status, name: 'changed' },
+  });
+  expect(store.state.tasks.nested?.assigneeIds).toEqual([2]);
+  expect(store.snapshot().tasks.nested?.assigneeIds).toEqual([1]);
+  expect(store.snapshot().tasks.nested?.status.name).toBe('to do');
+  store.endOptimistic('nested-op');
+  expect(store.state.tasks.nested?.assigneeIds).toEqual([1]);
+});

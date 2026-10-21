@@ -128,3 +128,42 @@ describe('createWorkspaceServices', () => {
     expect(api.fetchUpdatedSince).not.toHaveBeenCalled();
   });
 });
+
+it('composes detail/actions on the same requester and disposes both before late replies', async () => {
+  const snapshots = fakeSnapshots(null);
+  const workspace = await open(snapshots, fakeApi());
+  expect(workspace.details).toBeDefined();
+  expect(workspace.actions).toBeDefined();
+  await workspace.dispose();
+  expect(await workspace.actions?.update('missing', { name: 'x' })).toMatchObject({ ok: false });
+});
+
+it('polling a newer active task also reloads its detail resources through the same workspace', async () => {
+  const { detail, detailApi } = await import('../test/task-detail-fixtures');
+  const api = fakeApi({
+    fetchAssignedRoots: vi.fn(async () => [detail('a', 'old', NOW - 100).task]),
+  });
+  const resources = detailApi();
+  resources.getTask.mockResolvedValue(detail('a', 'old', NOW - 100));
+  const workspace = await createWorkspaceServices({
+    workspaceId: 'w',
+    userId: ME,
+    requester: unusedRequester,
+    snapshots: fakeSnapshots(null),
+    dateContext,
+    api,
+    detailApi: resources,
+  });
+  await vi.advanceTimersByTimeAsync(0);
+  await workspace.details?.open('a');
+  resources.getTask.mockResolvedValue({
+    ...detail('a', 'new', NOW),
+    markdownDescription: 'Remote edit',
+  });
+  api.fetchUpdatedSince.mockResolvedValue([detail('a', 'new', NOW).task]);
+  await workspace.sync.pollOnce();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(workspace.details?.state.detail?.markdownDescription).toBe('Remote edit');
+  expect(resources.getComments).toHaveBeenCalledTimes(2);
+  await workspace.dispose();
+});

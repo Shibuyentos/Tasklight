@@ -2,6 +2,8 @@ import { createContext, type JSX, useContext } from 'solid-js';
 import type { DateContext } from '../domain/dates';
 import type { TasksStore } from '../store/tasks';
 import type { SessionService } from '../sync/session';
+import type { TaskActions } from '../sync/task-actions';
+import type { TaskDetailsService } from '../sync/task-detail';
 import type { TaskSync } from '../sync/tasks';
 
 /** Dados e sincronização do workspace aberto. */
@@ -10,6 +12,8 @@ export interface WorkspaceServices {
   userId: number;
   store: TasksStore;
   sync: TaskSync;
+  details?: TaskDetailsService;
+  actions?: TaskActions;
   dateContext: () => DateContext;
 }
 

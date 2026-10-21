@@ -61,6 +61,7 @@ export interface TaskDetail {
   breadcrumb: TaskBreadcrumb;
 }
 export interface ListMetadata {
+  unavailable?: Array<'customFields' | 'members'>;
   id: string;
   name: string;
   statuses: TaskStatus[];

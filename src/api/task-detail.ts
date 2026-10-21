@@ -55,7 +55,7 @@ export function createTaskDetailApi(requester: Requester, workspaceId: string) {
     },
     async getList(listId: string): Promise<ListMetadata> {
       const path = `/list/${encodeURIComponent(listId)}`;
-      const [raw, fieldsRaw, membersRaw] = await Promise.all([
+      const [raw, fieldsRaw, membersRaw] = await Promise.allSettled([
         requester.get<unknown>(path, options),
         requester.get<unknown>(`${path}/field`, {
           ...options,
@@ -63,14 +63,23 @@ export function createTaskDetailApi(requester: Requester, workspaceId: string) {
         }),
         requester.get<unknown>(`${path}/member`, options),
       ]);
-      const dto = object(raw);
+      if (raw.status === 'rejected') throw raw.reason;
+      const unavailable: NonNullable<ListMetadata['unavailable']> = [];
+      if (fieldsRaw.status === 'rejected') unavailable.push('customFields');
+      if (membersRaw.status === 'rejected') unavailable.push('members');
+      const dto = object(raw.value);
       const breadcrumb = normalizeBreadcrumb({ ...dto, list: dto });
-      const metadata = {
+      const metadata: ListMetadata = {
+        ...(unavailable.length ? { unavailable } : {}),
         id: text(dto.id) || listId,
         name: text(dto.name),
         statuses: array(dto.statuses).map(normalizeStatus),
-        customFields: array(object(fieldsRaw).fields).map(normalizeCustomField),
-        members: normalizeUsers(object(membersRaw).members),
+        customFields: array(
+          object(fieldsRaw.status === 'fulfilled' ? fieldsRaw.value : undefined).fields,
+        ).map(normalizeCustomField),
+        members: normalizeUsers(
+          object(membersRaw.status === 'fulfilled' ? membersRaw.value : undefined).members,
+        ),
         breadcrumb,
         permissionLevel: dto.permission_level == null ? null : text(dto.permission_level),
       };

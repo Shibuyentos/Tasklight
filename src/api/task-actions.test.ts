@@ -262,3 +262,36 @@ describe('escritas de tarefas', () => {
     await expect(api.addTag('t', 'tag')).rejects.toThrow('escrita');
   });
 });
+
+it.each([null, 'created-id'])(
+  'distinguishes accepted creation with missing confirmation (%s) from POST rejection',
+  async (id) => {
+    let posts = 0;
+    const denied = new Error('confirmation denied');
+    const requester: Requester = {
+      get: async () => {
+        throw denied;
+      },
+      request: async <T>() => {
+        posts += 1;
+        return (id ? { id } : {}) as T;
+      },
+    };
+    await expect(
+      createTaskDetailApi(requester, 'w').createTask({ listId: 'l', name: 'Name' }),
+    ).rejects.toMatchObject({ name: 'TaskCreationConfirmationError', taskId: id });
+    expect(posts).toBe(1);
+  },
+);
+it('preserves a definite POST rejection instead of labeling it accepted creation', async () => {
+  const denied = new Error('POST denied');
+  const requester: Requester = {
+    get: async <T>() => ({}) as T,
+    request: async () => {
+      throw denied;
+    },
+  };
+  await expect(
+    createTaskDetailApi(requester, 'w').createTask({ listId: 'l', name: 'Name' }),
+  ).rejects.toBe(denied);
+});
