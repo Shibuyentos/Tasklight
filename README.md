@@ -23,12 +23,25 @@ npm run dev
 
 Depois, abra <http://localhost:5173>.
 
+Na primeira abertura o app pede o seu token pessoal do ClickUp e o guarda só neste
+navegador. Para não colar o token a cada sessão de desenvolvimento, crie um `.env.local`
+com `CLICKUP_API_KEY=pk_...` (veja `.env.example`) ou copie de outro arquivo `.env` sem
+exibir o valor:
+
+```bash
+npm run dev:token -- caminho/para/outro/.env
+```
+
+O token do `.env.local` só é usado pelo `npm run dev`. O `npm run build` nunca o inclui e
+falha se encontrar qualquer token em `dist/`.
+
 ## Scripts
 
 | Script | O que faz |
 | --- | --- |
 | `npm run dev` | servidor de desenvolvimento |
-| `npm run build` | build de produção em `dist/` |
+| `npm run dev:token` | copia `CLICKUP_API_KEY` de outro `.env` para o `.env.local` |
+| `npm run build` | build de produção em `dist/`, com verificação de segredos |
 | `npm run preview` | serve o build localmente |
 | `npm run typecheck` | checagem de tipos |
 | `npm run lint` | lint e formatação (Biome) |
